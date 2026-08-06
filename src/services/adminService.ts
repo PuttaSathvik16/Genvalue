@@ -60,7 +60,7 @@ export function parseAdminSessionToken(token?: string | null): AdminSessionPaylo
   if (typeof window === "undefined") return null;
 
   const value = token ?? readStoredAdminToken();
-  if (!isAdminTokenValue(value)) return null;
+  if (!value || !isAdminTokenValue(value)) return null;
 
   const raw = value.slice(ADMIN_TOKEN_PREFIX.length);
   const dotIndex = raw.lastIndexOf(".");

@@ -9,7 +9,7 @@ export const LMS_AUTH_TOKEN_KEY = "authToken";
 export const ADMIN_AUTH_TOKEN_KEY = "adminAuthToken";
 export const ADMIN_AUTH_COOKIE = "admin_token";
 
-export function isAdminTokenValue(token?: string | null): boolean {
+export function isAdminTokenValue(token?: string | null): token is string {
   return !!token && token.startsWith(ADMIN_TOKEN_PREFIX);
 }
 

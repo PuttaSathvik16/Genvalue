@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   FaBell,
   FaPlus,
-  FaEdit,
   FaTrash,
   FaCheck,
   FaXmark,

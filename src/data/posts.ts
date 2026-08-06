@@ -8,6 +8,7 @@ const PLACEHOLDER_BODY =
 
 export const posts: Post[] = [
   {
+    id: "post-marketer-tools-2026",
     slug: "5-ai-tools-every-marketer-needs-2026",
     title: "The 5 AI Tools Every Marketer Needs in 2026",
     excerpt:
@@ -23,6 +24,7 @@ export const posts: Post[] = [
     featured: true,
   },
   {
+    id: "post-chatgpt-claude-gemini-2026",
     slug: "chatgpt-vs-claude-vs-gemini-2026",
     title: "ChatGPT vs Claude vs Gemini in 2026 - Which Should You Use?",
     excerpt:
@@ -38,6 +40,7 @@ export const posts: Post[] = [
     featured: true,
   },
   {
+    id: "post-zapier-make-workflow",
     slug: "build-ai-workflow-zapier-make",
     title: "How to Build Your First AI Workflow with Zapier and Make",
     excerpt:
