@@ -15,11 +15,15 @@ export function getApiBaseUrl(): string {
 
 export const API_URL = getApiBaseUrl();
 
-/** Friendly message when the backend process is not running locally. */
+/** Friendly message when the backend process is not running. */
 export function wrapBackendFetchError(err: unknown, fallback: string): Error {
   if (err instanceof TypeError && err.message === "Failed to fetch") {
+    const base = getApiBaseUrl();
+    const isLocal = /localhost|127\.0\.0\.1/.test(base);
     return new Error(
-      "Cannot reach the backend API at localhost:5001. Start it with: cd backend && bun run dev"
+      isLocal
+        ? "Cannot reach the backend API at localhost:5001. Start it with: bun run dev:backend (or bun run dev:full)."
+        : `Cannot reach the backend API (${base}). Check that the Render service is live and NEXT_PUBLIC_API_URL is correct.`,
     );
   }
   if (err instanceof Error) return err;

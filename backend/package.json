@@ -1,0 +1,41 @@
+{
+  "name": "genvalue-academy-backend",
+  "version": "1.0.0",
+  "description": "GenValue Academy Backend API with Firebase Authentication",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "bun src/server.js",
+    "dev": "prisma generate && bun --watch src/server.js",
+    "seed": "bun prisma/seed.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "firebase:setup": "bun scripts/setup-firebase-admin.mjs",
+    "firebase:verify": "bun scripts/verify-firebase-admin.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "prisma": {
+    "seed": "bun prisma/seed.js"
+  },
+  "keywords": ["firebase", "express", "authentication", "api"],
+  "author": "GenValue Academy",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "body-parser": "^1.20.2",
+    "cloudinary": "^2.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "firebase": "^10.7.1",
+    "firebase-admin": "^12.0.0",
+    "nodemailer": "^9.0.4",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.9.1"
+  }
+}

@@ -1,0 +1,59 @@
+# Render Blueprint — GenValue Academy API
+# Dashboard: New → Blueprint → connect github.com/PuttaSathvik16/Genvalue
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: genvalue-academy-api
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      # Set these in the Render dashboard (sync: false keeps secrets out of git)
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ADMIN_JWT_SECRET
+        sync: false
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: GenValue Academy
+      - key: BREVO_TEAM_EMAIL
+        sync: false
+      - key: BREVO_SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: BREVO_SMTP_PORT
+        value: "587"
+      - key: BREVO_SMTP_USER
+        sync: false
+      - key: BREVO_SMTP_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_EMAIL_MODE
+        value: smtp-only
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

@@ -21,6 +21,10 @@ import { ensurePasswordResetSchema } from "./utils/ensurePasswordResetSchema.js"
 import { ensureBugReportSchema } from "./utils/ensureBugReportSchema.js";
 import { ensureStudentPlannerSchema } from "./utils/ensureStudentPlannerSchema.js";
 import { removeLegacySeedAnnouncements } from "./utils/announcementFeed.js";
+import {
+  getAllowedCorsOrigins,
+  validateProductionEnv,
+} from "./config/production.js";
 
 // Load environment variables (.env wins over empty shell exports)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,26 +34,47 @@ dotenv.config({
 });
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const isProduction = process.env.NODE_ENV === "production";
+
+// Render / reverse proxies terminate TLS — needed for correct req.ip and secure cookies
+app.set("trust proxy", 1);
+
+const allowedOrigins = getAllowedCorsOrigins();
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Non-browser clients (health checks, curl) often omit Origin
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      console.warn(`[cors] Blocked origin: ${origin}`);
+      callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(securityHeaders);
 // Increase payload limit for image uploads (10MB for base64 images)
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 
-// Health check route
+// Health check route (Render healthCheckPath)
 app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "GenValue Academy Backend API is running",
     version: "1.0.0",
+    environment: process.env.NODE_ENV || "development",
   });
 });
 
@@ -87,6 +112,20 @@ app.use((err, req, res, next) => {
 // Start server with database connection test
 async function startServer() {
   try {
+    const envCheck = validateProductionEnv();
+    if (!envCheck.ok) {
+      console.error(
+        "❌ Missing or invalid production environment variables:",
+        envCheck.missing.join(", "),
+      );
+      process.exit(1);
+    }
+
+    if (isProduction) {
+      console.log("✅ Production env validation passed");
+      console.log(`🌐 CORS origins: ${allowedOrigins.join(", ")}`);
+    }
+
     // Test database connection
     await testConnection();
 
@@ -126,10 +165,10 @@ async function startServer() {
 
     // Ensure super admin is seeded
     await ensureSuperAdminSeeded();
-    
-    // Start listening
-    app.listen(PORT, () => {
-      console.log(`✅ Backend server running on http://localhost:${PORT}`);
+
+    // Bind 0.0.0.0 so Render / Docker can route traffic
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`✅ Backend server running on 0.0.0.0:${PORT}`);
       console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`🔥 Firebase Project: ${process.env.FIREBASE_PROJECT_ID}`);
     });

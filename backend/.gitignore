@@ -9,10 +9,12 @@ yarn-error.log*
 .env.local
 .env.development
 .env.production
+!.env.example
 
-# Firebase service account key
+# Firebase service account key (never commit secrets)
 serviceAccountKey.json
-*.json
+*-firebase-adminsdk-*.json
+firebase-adminsdk*.json
 
 # Logs
 logs/
