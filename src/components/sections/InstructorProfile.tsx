@@ -20,9 +20,9 @@ type InstructorMeta = {
 
 const INSTRUCTOR_META: Record<(typeof INSTRUCTOR_IDS)[number], InstructorMeta> = {
   "sathvik-putta": {
-    eyebrow: "★ LEAD INSTRUCTOR & CO-FOUNDER",
-    headlineRole: "Lead Instructor, GenValue",
-    tagline: "AI Practitioner. Not just a teacher.",
+    eyebrow: "★ CO-FOUNDER & INSTRUCTOR",
+    headlineRole: "Co-Founder & Instructor, GenValue",
+    tagline: "AI/ML Engineer · Generative AI & Data Science",
   },
   "srilakshmi-k": {
     eyebrow: "★ CPO & INSTRUCTOR",

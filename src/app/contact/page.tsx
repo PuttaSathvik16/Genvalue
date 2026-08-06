@@ -69,7 +69,7 @@ export default function ContactPage() {
 
                 <div>
                   <dt className="font-annotation text-xs font-bold uppercase tracking-wider text-[#6B6558] dark:text-slate-400">
-                    LEAD INSTRUCTOR
+                    CO-FOUNDER & INSTRUCTOR
                   </dt>
                   <dd className="mt-1 font-bold text-[#2A2A28] dark:text-white">
                     Sathvik Putta

@@ -6,7 +6,7 @@ export async function generateMetadata(): Promise<Metadata> {
     path: "/instructors",
     title: "Instructors | GenValue",
     description:
-      "Meet Sathvik Putta - Lead Instructor at GenValue. Practitioner-led AI tools training with real-world workflows.",
+      "Meet Sathvik Putta - Co-Founder & Instructor at GenValue. Practitioner-led AI tools training with real-world workflows.",
     ogTitle: "Instructors | GenValue",
   });
 }

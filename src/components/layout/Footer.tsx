@@ -159,7 +159,7 @@ export function Footer() {
                 </li>
                 <li>
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#B9C0E6]">
-                    Lead Instructor
+                    Co-Founder & Instructor
                   </span>
                   <p className="font-semibold text-white">Sathvik Putta</p>
                 </li>

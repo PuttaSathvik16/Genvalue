@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { NotificationBell } from "@/components/layout/NotificationBell";
 import { SiteLogoMark } from "@/components/layout/SiteLogoMark";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { DownloadButton } from "@/components/ui/DownloadButton";
@@ -145,7 +144,6 @@ export function Navbar() {
         {/* Action Controls & Pop Accent CTA */}
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
-          <NotificationBell />
 
           <EnrollNowLink
             aria-label="Enroll in AI Tools Mastery"

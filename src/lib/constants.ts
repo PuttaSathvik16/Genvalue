@@ -8,7 +8,7 @@ export const SITE = {
   email: "genvalue.academy@gmail.com",
   instructor: {
     name: "Sathvik Putta",
-    title: "Lead Instructor, GenValue",
+    title: "Co-Founder & Instructor, GenValue",
   },
   socials: {
     linkedin: "https://www.linkedin.com/company/genvalueacademy/",

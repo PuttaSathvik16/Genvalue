@@ -121,7 +121,7 @@ const FEATURES: readonly FeatureItem[] = [
   {
     eyebrow: "③ PRACTITIONER LED",
     title: "Expert Instruction",
-    description: "Taught by Sathvik Putta, practitioner not theorist. Learn grounded workflows from someone who builds with AI daily.",
+    description: "Taught by Sathvik Putta, Co-Founder & Instructor at GenValue. Learn grounded workflows from someone who builds with AI daily.",
     Icon: FaPersonChalkboard,
     badgeText: "MENTORSHIP",
     illustration: InstantPortfolioSvg,
