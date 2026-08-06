@@ -22,9 +22,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /** Browsers probe `/favicon.ico` by habit; serve the GV mark from our JPEG asset. */
+  /** Browsers probe `/favicon.ico` by habit; serve the Genvalue Dark SVG mark. */
   async redirects() {
-    return [{ source: "/favicon.ico", destination: "/gv-favicon.jpg", permanent: false }];
+    return [{ source: "/favicon.ico", destination: "/favicon.svg", permanent: false }];
   },
 };
 
