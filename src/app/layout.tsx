@@ -61,7 +61,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Theme-aware favicons: Dark mark on dark OS theme, Light mark on light OS theme */}
+        {/*
+          Chrome/OS theme favicons via prefers-color-scheme.
+          Dark browser chrome → light mark; light browser chrome → dark mark.
+          Both assets share the same canvas, padding, and pixel geometry.
+        */}
         <link
           rel="icon"
           href="/favicon-light.svg"

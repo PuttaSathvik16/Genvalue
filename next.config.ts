@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /** Browsers probe `/favicon.ico` by habit; SVG variants are selected via prefers-color-scheme in layout. */
+  /** Legacy `/favicon.ico` probes; theme switching uses prefers-color-scheme links in layout. */
   async redirects() {
     return [{ source: "/favicon.ico", destination: "/favicon.svg", permanent: false }];
   },
