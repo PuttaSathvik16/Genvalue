@@ -60,6 +60,21 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Theme-aware favicons: Dark mark on dark OS theme, Light mark on light OS theme */}
+        <link
+          rel="icon"
+          href="/favicon-light.svg"
+          type="image/svg+xml"
+          media="(prefers-color-scheme: light)"
+        />
+        <link
+          rel="icon"
+          href="/favicon-dark.svg"
+          type="image/svg+xml"
+          media="(prefers-color-scheme: dark)"
+        />
+      </head>
       {/* TODO: Inject Google Analytics (gtag.js) using NEXT_PUBLIC_GA_ID so syllabus_download events from DownloadButton are received */}
       <body
         className={`${dmSans.variable} ${spaceGrotesk.variable} ${kalam.variable} ${dmSans.className} antialiased`}

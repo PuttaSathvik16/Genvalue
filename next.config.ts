@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /** Browsers probe `/favicon.ico` by habit; serve the Genvalue Dark SVG mark. */
+  /** Browsers probe `/favicon.ico` by habit; SVG variants are selected via prefers-color-scheme in layout. */
   async redirects() {
     return [{ source: "/favicon.ico", destination: "/favicon.svg", permanent: false }];
   },
