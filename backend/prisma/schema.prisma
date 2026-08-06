@@ -1,0 +1,1090 @@
+// Prisma schema for GenValue Academy
+// Database: CockroachDB
+// Auth: Firebase Authentication + CockroachDB persistence
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "cockroachdb"
+}
+
+// User model - stores all user data from both manual and Google OAuth signups
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  name              String
+  role              Role      @default(STUDENT)
+  
+  // Firebase UID (from both email/password and Google OAuth)
+  firebaseUid       String?   @unique
+  
+  // For manual email/password accounts (Firebase handles password)
+  emailVerified     Boolean   @default(false)
+  
+  // For Google OAuth accounts
+  googleId          String?   @unique
+  googlePhotoUrl    String?
+  
+  // Account linking fields
+  authProvider      AuthProvider @default(EMAIL)
+  linkedProviders   String[]  // Array of provider names: ["EMAIL", "GOOGLE"]
+  
+  // Profile Information
+  bio               String?   @db.String // Professional tagline/bio (max 250 chars)
+  profilePicture    String?   // URL to profile picture
+  phoneNumber       String?
+  country           String?
+  timeZone          String?
+  
+  // AI Skills & Tool Expertise (stored as comma-separated or JSON)
+  skills            String[]  @default([])
+  
+  // Social Profiles
+  linkedinUrl       String?
+  githubUrl         String?
+  portfolioUrl      String?
+  huggingFaceUrl    String?
+  kaggleUrl         String?
+  twitterUrl        String?
+  
+  // Preferences
+  preferredLanguage String?   @default("en")
+  emailNotifications Boolean  @default(true)
+  publicProfile     Boolean   @default(false)
+  
+  // Account Information
+  membershipPlan    String?   @default("FREE")
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLoginAt       DateTime?
+  
+  // Relations
+  sessions          Session[]
+  announcementsCreated Announcement[] @relation("AnnouncementCreator")
+  notifications     Notification[] @relation("UserNotifications")
+  courseInstructor  Course[] @relation("CourseInstructor")
+  enrollments       Enrollment[] @relation("UserEnrollments")
+  courseProgress    CourseProgress[] @relation("UserCourseProgress")
+  lessonProgress    LessonProgress[] @relation("UserLessonProgress")
+  quizResponses     QuizResponse[] @relation("UserQuizResponses")
+  assignmentSubmissions AssignmentSubmission[] @relation("UserAssignmentSubmissions")
+  capstoneSubmissions CapstoneSubmission[] @relation("UserCapstoneSubmissions")
+  certificates      Certificate[] @relation("UserCertificates")
+  
+  // Discussion relations
+  discussionsCreated Discussion[] @relation("DiscussionAuthor")
+  assignedDiscussions Discussion[] @relation("InstructorAssignedDiscussions")
+  replies           Reply[] @relation("ReplyAuthor")
+  discussionUpvotes DiscussionUpvote[] @relation("DiscussionUpvotes")
+  replyUpvotes      ReplyUpvote[] @relation("ReplyUpvotes")
+  replyHelpfulMarks ReplyHelpful[] @relation("ReplyHelpfulMarks")
+  discussionBookmarks DiscussionBookmark[] @relation("DiscussionBookmarks")
+  discussionReports DiscussionReport[] @relation("DiscussionReports")
+  reviewedReports   DiscussionReport[] @relation("ReviewedReports")
+  blogPostsAuthored BlogPost[] @relation("BlogPostAuthor")
+  blogPostsReviewed BlogPost[] @relation("BlogPostReviewer")
+  bugReports        BugReport[] @relation("StudentBugReports")
+  plannerEvents     StudentPlannerEvent[] @relation("StudentPlannerEvents")
+  activityLogs      StudentActivityLog[] @relation("StudentActivityLogs")
+  
+  @@index([email])
+  @@index([firebaseUid])
+  @@map("users")
+}
+
+// Session model - stores Firebase tokens for persistence
+model Session {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Firebase ID token (JWT)
+  firebaseToken   String    @db.String
+  refreshToken    String?   @db.String
+  
+  // Session metadata
+  ipAddress       String?
+  userAgent       String?
+  deviceInfo      String?
+  
+  // Session lifecycle
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+  lastAccessedAt  DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// Admin OTP model - for admin authentication
+model AdminOTP {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  otp        String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  verified   Boolean  @default(false)
+  
+  @@index([email])
+  @@index([expiresAt])
+  @@map("admin_otps")
+}
+
+// Student password reset OTP
+model PasswordResetOTP {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  otp                 String
+  expiresAt           DateTime
+  verified            Boolean   @default(false)
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([email])
+  @@index([resetToken])
+  @@map("password_reset_otps")
+}
+
+// Audit trail when an admin removes a student account
+model UserRemovalLog {
+  id              String   @id @default(uuid())
+  userId          String
+  email           String
+  name            String
+  reason          String   @db.String
+  removedById     String?
+  removedByEmail  String?
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("user_removal_logs")
+}
+
+// Authorized admin emails - managed by super admin
+model AuthorizedAdmin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String?
+  isSuperAdmin Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  roles          String[] @default([])
+  portalSections String[] @default([])
+  userLimit      Int?
+  addedByEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([isActive])
+  @@map("authorized_admins")
+}
+
+// Super-admin configurable cap on authorized admin email slots
+model AdminPortalSettings {
+  id                  String   @id @default("default")
+  maxAuthorizedAdmins Int      @default(5)
+  updatedAt           DateTime @updatedAt
+  updatedByEmail      String?
+
+  @@map("admin_portal_settings")
+}
+
+// Announcement model - for admin-created announcements
+model Announcement {
+  id              String    @id @default(uuid())
+  title           String    @db.String(255)
+  message         String    @db.String // Long text for announcement content
+  description     String?   @db.String(500) // Short description for previews
+  
+  // Announcement metadata
+  type            AnnouncementType @default(GENERAL)
+  priority        Priority  @default(NORMAL)
+  status          String    @default("PUBLISHED")
+  
+  // Media
+  imageUrl        String?   // Thumbnail or header image
+  
+  // Audience targeting
+  targetAudience  String    @default("ALL") // "ALL", "STUDENTS", "INSTRUCTORS", or specific user IDs
+  
+  // Creator
+  createdById     String
+  createdBy       User      @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  
+  // Scheduling
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  publishedAt     DateTime?
+  expiresAt       DateTime?
+  
+  // Relations
+  notifications   Notification[]
+  
+  @@index([createdById])
+  @@index([publishedAt])
+  @@index([expiresAt])
+  @@map("announcements")
+}
+
+// Notification model - user-specific notification records
+model Notification {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Link to announcement
+  announcementId  String?
+  announcement    Announcement? @relation(fields: [announcementId], references: [id], onDelete: SetNull)
+  
+  // Notification content
+  title           String    @db.String(255)
+  message         String    @db.String
+  type            NotificationType @default(ANNOUNCEMENT)
+  
+  // Status
+  isRead          Boolean   @default(false)
+  readAt          DateTime?
+  
+  // Action
+  actionUrl       String?   // Link to relevant page
+  actionLabel     String?   // Button text
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Course model - stores course information
+model Course {
+  id              String    @id @default(uuid())
+  title           String    @db.String(255)
+  slug            String    @unique
+  description     String?   @db.String
+  
+  // Course metadata
+  duration        String?   // e.g., "12 weeks"
+  level           String    @default("BEGINNER") // BEGINNER, INTERMEDIATE, ADVANCED
+  status          String    @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
+  
+  // Instructor
+  instructorId    String?
+  instructor      User?     @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  
+  // Relationships
+  modules         Module[]
+  enrollments     Enrollment[]
+  progress        CourseProgress[]
+  certificates    Certificate[] @relation("CourseCertificates")
+  discussions     Discussion[] @relation("CourseDiscussions")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([instructorId])
+  @@index([status])
+  @@map("courses")
+}
+
+// Module model - stores course modules/weeks
+model Module {
+  id              String    @id @default(uuid())
+  courseId        String
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  title           String    @db.String(255)
+  description     String?   @db.String
+  week            Int       // Week number (1-12)
+  order           Int       // Display order
+  
+  // Status
+  status          String    @default("ACTIVE")
+  isReleased      Boolean   @default(true)
+  contentMeta     String?   @db.String
+  
+  // Relationships
+  lessons         Lesson[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([courseId, week])
+  @@index([courseId])
+  @@map("modules")
+}
+
+// Lesson model - stores individual lessons
+model Lesson {
+  id              String    @id @default(uuid())
+  moduleId        String
+  module          Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  
+  title           String    @db.String(255)
+  description     String?   @db.String
+  slug            String
+  content         String?   @db.String // HTML content
+  videoUrl        String?
+  
+  // Lesson metadata
+  order           Int       // Display order within module
+  duration        Int?      // Duration in minutes
+  status          String    @default("ACTIVE")
+  
+  // Relationships
+  userProgress    LessonProgress[]
+  quizzes         Quiz[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([moduleId, slug])
+  @@index([moduleId])
+  @@map("lessons")
+}
+
+// Enrollment model - tracks student enrollments
+model Enrollment {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserEnrollments", fields: [userId], references: [id], onDelete: Cascade)
+  
+  courseId        String
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  // Enrollment status
+  status          String    @default("ACTIVE") // ACTIVE, COMPLETED, DROPPED, PAUSED
+  enrolledAt      DateTime  @default(now())
+  completedAt     DateTime?
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@map("enrollments")
+}
+
+// CourseProgress model - tracks overall course progress
+model CourseProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserCourseProgress", fields: [userId], references: [id], onDelete: Cascade)
+  
+  courseId        String
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  // Progress metrics
+  overallProgress Int       @default(0) // Percentage 0-100
+  completedLessons Int      @default(0)
+  totalLessons    Int       @default(0)
+  
+  // Quiz stats
+  quizzesTaken    Int       @default(0)
+  quizAverage     Int       @default(0) // Percentage
+  
+  // Timestamps
+  startedAt       DateTime  @default(now())
+  lastAccessedAt  DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("course_progress")
+}
+
+// LessonProgress model - tracks individual lesson progress
+model LessonProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserLessonProgress", fields: [userId], references: [id], onDelete: Cascade)
+  
+  lessonId        String
+  lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  // Progress
+  status          String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  completedAt     DateTime?
+  timeSpent       Int       @default(0) // In seconds
+  
+  // Timestamps
+  startedAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_progress")
+}
+
+// Quiz model - stores quiz questions
+model Quiz {
+  id              String    @id @default(uuid())
+  lessonId        String
+  lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  title           String    @db.String(255)
+  description     String?   @db.String
+  
+  // Quiz content
+  questions       String    @db.String // JSON array of questions
+  passingScore    Int       @default(70) // Percentage
+  
+  // Settings
+  status          String    @default("ACTIVE")
+  
+  // Relationships
+  userResponses   QuizResponse[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([lessonId])
+  @@map("quizzes")
+}
+
+// QuizResponse model - tracks user quiz attempts
+model QuizResponse {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserQuizResponses", fields: [userId], references: [id], onDelete: Cascade)
+  
+  quizId          String
+  quiz            Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  // Response data
+  answers         String    @db.String // JSON object of answers
+  score           Int? // Percentage
+  passed          Boolean?
+  
+  // Timestamps
+  attemptedAt     DateTime  @default(now())
+  submittedAt     DateTime?
+  
+  @@index([userId])
+  @@index([quizId])
+  @@map("quiz_responses")
+}
+
+// Assignment model - stores assignment information created by admin
+model Assignment {
+  id              String    @id @default(uuid())
+  week            Int       // Week number (1-12)
+  title           String    @db.String(255)
+  description     String?   @db.String
+  instructions    String?   @db.String
+  
+  // Assignment type and configuration
+  type            AssignmentType @default(PDF) // PDF, MCQ, MIXED
+  isRequired      Boolean   @default(true)
+  
+  // For MCQ assignments
+  questions       String?   @db.String // JSON array of questions (if type is MCQ or MIXED)
+  passingScore    Int?      // Percentage (if type is MCQ or MIXED)
+  
+  // Deadline
+  dueDate         DateTime
+  
+  // Status
+  status          String    @default("ACTIVE")
+  
+  // Relationships
+  submissions     AssignmentSubmission[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([week])
+  @@index([status])
+  @@index([dueDate])
+  @@map("assignments")
+}
+
+// AssignmentSubmission model - tracks student submissions
+model AssignmentSubmission {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserAssignmentSubmissions", fields: [userId], references: [id], onDelete: Cascade)
+  
+  assignmentId    String
+  assignment      Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  // Submission content
+  submissionType  String    // PDF, MCQ, or MIXED
+  pdfUrl          String?   // URL to uploaded PDF (if applicable)
+  answers         String?   @db.String // JSON object of MCQ answers (if applicable)
+  
+  // Grading
+  quizScore       Int?      // Auto-scored MCQ portion (0–100)
+  grade           Int?      // Final grade (manual for PDF, auto for MCQ-only)
+  feedback        String?   @db.String // Instructor feedback
+  status          String    @default("PENDING") // PENDING, GRADED, SUBMITTED
+  
+  // Timestamps
+  submittedAt     DateTime?
+  gradedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, assignmentId])
+  @@index([userId])
+  @@index([assignmentId])
+  @@index([status])
+  @@map("assignment_submissions")
+}
+
+// Capstone model - stores capstone project information
+model Capstone {
+  id              String    @id @default(uuid())
+  title           String    @db.String(255)
+  description     String?   @db.String
+  requirements    String?   @db.String // JSON array of requirements
+  
+  // Capstone configuration
+  isRequired      Boolean   @default(true)
+  passingScore    Int       @default(70) // Percentage
+  dueDate         DateTime
+  
+  // Status
+  status          String    @default("ACTIVE")
+  
+  // Relationships
+  submissions     CapstoneSubmission[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([dueDate])
+  @@map("capstones")
+}
+
+// CapstoneSubmission model - tracks student capstone submissions
+model CapstoneSubmission {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation("UserCapstoneSubmissions", fields: [userId], references: [id], onDelete: Cascade)
+  
+  capstoneId      String
+  capstone        Capstone  @relation(fields: [capstoneId], references: [id], onDelete: Cascade)
+  
+  // Submission content
+  projectTitle    String    @db.String(255)
+  description     String?   @db.String
+  documentsUrl    String?   // URL to project files/documentation
+  projectUrl      String?   // URL to live project (if applicable)
+  
+  // Grading
+  grade           Int?      // Percentage
+  feedback        String?   @db.String
+  status          String    @default("PENDING") // PENDING, GRADED, SUBMITTED
+  
+  // Timestamps
+  submittedAt     DateTime?
+  gradedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, capstoneId])
+  @@index([userId])
+  @@index([capstoneId])
+  @@index([status])
+  @@map("capstone_submissions")
+}
+
+// Certificate model - stores user certificates
+model Certificate {
+  id              String    @id @default(uuid())
+  certificateId   String    @unique // Unique certificate identifier for verification
+  userId          String
+  user            User      @relation("UserCertificates", fields: [userId], references: [id], onDelete: Cascade)
+  
+  courseId        String
+  course          Course    @relation("CourseCertificates", fields: [courseId], references: [id], onDelete: Cascade)
+  
+  // Certificate details
+  issuedAt        DateTime  @default(now())
+  
+  // Certificate files
+  pdfUrl          String?   // URL to PDF certificate
+  qrCodeUrl       String?   // URL to QR code for verification
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([certificateId])
+  @@map("certificates")
+}
+
+// ========== DISCUSSION MODULE ==========
+
+// Category model - for organizing discussions
+model DiscussionCategory {
+  id              String    @id @default(uuid())
+  name            String    @unique @db.String(100)
+  slug            String    @unique
+  description     String?   @db.String(500)
+  icon            String?   // Icon URL or emoji
+  color           String?   @default("#3B82F6") // Hex color for UI
+  order           Int       @default(0) // Display order
+  
+  // Status
+  isActive        Boolean   @default(true)
+  
+  // Relations
+  discussions     Discussion[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([isActive])
+  @@map("discussion_categories")
+}
+
+// Tag model - for tagging discussions
+model DiscussionTag {
+  id              String    @id @default(uuid())
+  name            String    @unique @db.String(50)
+  slug            String    @unique
+  description     String?   @db.String(200)
+  
+  // Status
+  isActive        Boolean   @default(true)
+  
+  // Relations
+  discussions     DiscussionTag_Discussion[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([isActive])
+  @@map("discussion_tags")
+}
+
+// Junction table for Discussion and Tag (many-to-many)
+model DiscussionTag_Discussion {
+  discussionId    String
+  discussion      Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  
+  tagId           String
+  tag             DiscussionTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@id([discussionId, tagId])
+  @@index([tagId])
+  @@map("discussion_tags_discussions")
+}
+
+// Discussion model - main discussion thread
+model Discussion {
+  id              String    @id @default(uuid())
+  
+  // Basic info
+  title           String    @db.String(255)
+  description     String    @db.String // Rich text content
+  slug            String    @unique
+  
+  // Author
+  studentId       String
+  student         User      @relation("DiscussionAuthor", fields: [studentId], references: [id], onDelete: Cascade)
+  
+  // Course and category
+  courseId        String
+  course          Course    @relation("CourseDiscussions", fields: [courseId], references: [id], onDelete: Cascade)
+  
+  categoryId      String
+  category        DiscussionCategory @relation(fields: [categoryId], references: [id])
+  
+  // Status fields
+  status          DiscussionStatus @default(OPEN) // OPEN, SOLVED, CLOSED, LOCKED, ARCHIVED, REPORTED
+  isPinned        Boolean   @default(false)
+  isLocked        Boolean   @default(false)
+  isArchived      Boolean   @default(false)
+  
+  // Instructor assignment
+  assignedToId    String? // Assigned instructor ID
+  assignedTo      User?     @relation("InstructorAssignedDiscussions", fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  // Official answer
+  officialReplyId String?
+  officialReply   Reply?    @relation("OfficialAnswer", fields: [officialReplyId], references: [id], onDelete: SetNull)
+  
+  // Priority and visibility
+  priority        Priority  @default(NORMAL)
+  
+  // Metrics
+  viewCount       Int       @default(0)
+  replyCount      Int       @default(0)
+  upvoteCount     Int       @default(0)
+  bookmarkCount   Int       @default(0)
+  
+  // Relations
+  replies         Reply[]   @relation("DiscussionReplies")
+  tags            DiscussionTag_Discussion[]
+  bookmarks       DiscussionBookmark[]
+  reports         DiscussionReport[]
+  upvotes         DiscussionUpvote[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  solvedAt        DateTime?
+  
+  @@index([studentId])
+  @@index([courseId])
+  @@index([categoryId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([isPinned])
+  @@index([isLocked])
+  @@index([createdAt])
+  @@map("discussions")
+}
+
+// Reply model - for discussion replies
+model Reply {
+  id              String    @id @default(uuid())
+  
+  // Content
+  content         String    @db.String // Rich text
+  
+  // Author
+  authorId        String
+  author          User      @relation("ReplyAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Discussion
+  discussionId    String
+  discussion      Discussion @relation("DiscussionReplies", fields: [discussionId], references: [id], onDelete: Cascade)
+  
+  // Reply to another reply (for threading)
+  parentReplyId   String?
+  parentReply     Reply?    @relation("ReplyThreads", fields: [parentReplyId], references: [id], onDelete: Cascade)
+  childReplies    Reply[]   @relation("ReplyThreads")
+  
+  // Status
+  isHidden        Boolean   @default(false) // Hidden by moderator
+  isOfficialAnswer Boolean  @default(false)
+  
+  // Metrics
+  upvoteCount     Int       @default(0)
+  helpfulCount    Int       @default(0)
+  
+  // Relations
+  upvotes         ReplyUpvote[]
+  helpfulMarks    ReplyHelpful[]
+  officalAnswerFor Discussion[] @relation("OfficialAnswer")
+  reports         DiscussionReport[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([discussionId])
+  @@index([authorId])
+  @@index([parentReplyId])
+  @@index([isHidden])
+  @@map("replies")
+}
+
+// Upvote model - for discussion upvotes
+model DiscussionUpvote {
+  id              String    @id @default(uuid())
+  
+  discussionId    String
+  discussion      Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  user            User      @relation("DiscussionUpvotes", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([discussionId, userId])
+  @@index([userId])
+  @@map("discussion_upvotes")
+}
+
+// Reply upvote model
+model ReplyUpvote {
+  id              String    @id @default(uuid())
+  
+  replyId         String
+  reply           Reply     @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  user            User      @relation("ReplyUpvotes", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([replyId, userId])
+  @@index([userId])
+  @@map("reply_upvotes")
+}
+
+// Reply helpful model - students mark replies as helpful
+model ReplyHelpful {
+  id              String    @id @default(uuid())
+  
+  replyId         String
+  reply           Reply     @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  markedByUserId  String
+  markedByUser    User      @relation("ReplyHelpfulMarks", fields: [markedByUserId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([replyId, markedByUserId])
+  @@index([markedByUserId])
+  @@map("reply_helpful")
+}
+
+// Bookmark model - for saving discussions
+model DiscussionBookmark {
+  id              String    @id @default(uuid())
+  
+  discussionId    String
+  discussion      Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  user            User      @relation("DiscussionBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([discussionId, userId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("discussion_bookmarks")
+}
+
+// Report model - for reporting inappropriate content
+model DiscussionReport {
+  id              String    @id @default(uuid())
+  
+  // What is being reported
+  discussionId    String
+  discussion      Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  
+  replyId         String?   // If reporting a reply
+  reply           Reply?    @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  // Who reported
+  reportedByUserId String
+  reportedByUser   User      @relation("DiscussionReports", fields: [reportedByUserId], references: [id], onDelete: Cascade)
+  
+  // Report details
+  reason          ReportReason
+  message         String?   @db.String(500)
+  
+  // Status
+  status          ReportStatus @default(PENDING) // PENDING, REVIEWED, RESOLVED, DISMISSED
+  
+  // Admin response
+  reviewedById    String?
+  reviewedBy      User?     @relation("ReviewedReports", fields: [reviewedById], references: [id], onDelete: SetNull)
+  adminNotes      String?   @db.String(500)
+  resolution      String?   @db.String(500)
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  reviewedAt      DateTime?
+  
+  @@index([discussionId])
+  @@index([reportedByUserId])
+  @@index([status])
+  @@map("discussion_reports")
+}
+
+// Enums
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum DiscussionStatus {
+  OPEN
+  SOLVED
+  CLOSED
+  LOCKED
+  ARCHIVED
+  REPORTED
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  OFFENSIVE
+  MISINFORMATION
+  OFF_TOPIC
+  DUPLICATE
+  LOW_QUALITY
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  BOTH  // User has linked both email/password and Google OAuth
+}
+
+enum AnnouncementType {
+  GENERAL
+  IMPORTANT
+  SYSTEM
+  DEADLINE
+  EVENT
+  MENTORSHIP
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  DEADLINE
+  GRADE
+  ENROLLMENT
+  SYSTEM
+  MESSAGE
+}
+
+enum AssignmentType {
+  PDF
+  MCQ
+  MIXED
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+// Community blog posts for The GenValue Dispatch
+model BlogPost {
+  id            String         @id @default(uuid())
+  slug          String         @unique
+  title         String         @db.String(255)
+  excerpt       String         @db.String(500)
+  content       String         @db.String
+  category      String         @default("General AI")
+  tags          String[]       @default([])
+  coverImage    String?
+  readTime      String?
+  featured      Boolean        @default(false)
+  status        BlogPostStatus @default(PENDING)
+
+  authorId      String
+  author        User           @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  reviewedById  String?
+  reviewedBy    User?          @relation("BlogPostReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes   String?        @db.String(500)
+
+  publishedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([featured])
+  @@map("blog_posts")
+}
+
+model BugReport {
+  id              String            @id @default(uuid())
+  userId          String
+  userEmail       String
+  userName        String
+  category        String   @default("BUG")
+  title           String   @db.String(200)
+  description     String   @db.String
+  pageUrl         String?
+  screenshotUrl   String?
+  userAgent       String?
+  status          String   @default("OPEN")
+  adminNotes      String?           @db.String
+  resolvedByEmail String?
+  resolvedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user User @relation("StudentBugReports", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("bug_reports")
+}
+
+model StudentPlannerEvent {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String    @db.String(200)
+  description String?   @db.String
+  category    String    @default("STUDY")
+  scheduledAt DateTime
+  endAt       DateTime?
+  allDay      Boolean   @default(false)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation("StudentPlannerEvents", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([scheduledAt])
+  @@map("student_planner_events")
+}
+
+model StudentActivityLog {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  label      String?
+  occurredAt DateTime @default(now())
+
+  user User @relation("StudentActivityLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([occurredAt])
+  @@map("student_activity_logs")
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="288" viewBox="0 0 288 288" fill="none">
+  <defs>
+    <linearGradient id="gva-avatar-bg" x1="0" y1="0" x2="288" y2="288" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="144" cy="144" r="144" fill="url(#gva-avatar-bg)"/>
+  <text x="144" y="172" text-anchor="middle" fill="#FBBF24" font-family="system-ui,Segoe UI,sans-serif" font-size="72" font-weight="600">SP</text>
+</svg>

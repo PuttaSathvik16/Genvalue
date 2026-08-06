@@ -1,0 +1,1 @@
+ALTER TABLE authorized_admins ADD COLUMN IF NOT EXISTS "portalSections" STRING[] NOT NULL DEFAULT ARRAY[]::STRING[];

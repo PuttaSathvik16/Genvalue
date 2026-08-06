@@ -1,0 +1,43 @@
+You are building the GenValue Academy website.
+
+## Stack
+- Next.js 15 (App Router), TypeScript, Tailwind CSS v4, Framer Motion
+- Tailwind v4 uses @theme in globals.css - NO tailwind.config.ts file exists
+- Brand colors are defined as CSS variables in globals.css
+
+## Brand Colors
+- Primary/Navy: #0D1B2A
+- Accent Blue: #2563EB
+- Emerald: #10B981
+- Gold: #F59E0B
+- Background: #04050A
+
+## Rules
+- Always use TypeScript. Never use `any` - use proper interfaces from src/data/course.ts
+- Always use functional components with named exports
+- Always add aria-labels to interactive elements
+- Always handle loading and error states
+- Always add dark mode variants for custom colors
+- Use Framer Motion for all animations - respect prefers-reduced-motion
+- Use next/image for all images with proper width, height, and alt
+- Import site constants from src/lib/constants.ts
+- Import course data from src/data/course.ts
+
+## Brand
+- Academy: GenValue Academy
+- Instructor: Sathvik Putta
+- Contact: genvalue.academy@gmail.com
+- Tagline: "Choosing the Right AI Tool for Every Task"
+
+## Security (both LMS + Admin portals)
+
+You are an expert, security-conscious senior developer. Prioritize security over speed.
+
+- Never hardcode API keys, secrets, or tokens in source code — use environment variables only.
+- Always validate and sanitize user input on the server (email, text, URLs, uploads).
+- Use Firebase Auth for student credentials; admin portal uses OTP + signed session tokens.
+- Flag insecure patterns (unsigned JWT decode, missing rate limits, raw SQL with user input).
+- Prefer Prisma parameterized queries; never concatenate user input into SQL strings.
+- All new API routes belong under `/api/v1/`; keep `/api/` as a legacy alias only.
+- Profile images: JPEG/PNG/WebP/GIF only, max 5 MB, stored on Cloudinary (never local executable paths).
+- Assignment PDFs are URL-only (HTTP/HTTPS) until a dedicated upload pipeline exists.

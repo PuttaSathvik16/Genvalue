@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academy — Learn at the speed of curiosity</title>
+<style>
+  :root{
+    --paper:#EDE6D3;
+    --paper-line:rgba(60,50,30,0.07);
+    --ink:#2A2A28;
+    --ink-soft:#6B6558;
+    --brand-blue:#1E3FE0;
+    --brand-blue-deep:#12266E;
+    --accent:#E8622E;
+    --surface:#F6F1E4;
+    --radius-pill:999px;
+    --radius-card:20px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink);
+    font-family:'Neue Montreal','Inter',system-ui,-apple-system,sans-serif;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{
+    font-family:'Cabinet Grotesk','General Sans',system-ui,sans-serif;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    margin:0;
+  }
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+
+  /* ---------- cursor coordinate easter egg ---------- */
+  #coords{
+    position:fixed;top:14px;left:18px;font-family:monospace;font-size:11px;
+    color:var(--ink-soft);opacity:.6;z-index:60;line-height:1.4;pointer-events:none;
+  }
+
+  /* ---------- navbar ---------- */
+  .navbar{
+    position:sticky;top:20px;z-index:50;margin:0 auto;max-width:920px;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;
+    background:#fff;border-radius:var(--radius-pill);
+    padding:10px 10px 10px 18px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+    transition:box-shadow .25s ease;
+  }
+  .navbar.scrolled{box-shadow:0 12px 30px rgba(20,20,20,0.14);}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;}
+  .brand-mark{width:22px;height:22px;border-radius:6px;
+    background:conic-gradient(var(--brand-blue) 0 25%, var(--paper) 0 50%, var(--brand-blue) 0 75%, var(--paper) 0);
+  }
+  .nav-links{display:flex;gap:22px;font-size:14px;color:var(--ink-soft);}
+  .nav-cta{
+    background:var(--accent);color:#fff;font-weight:600;font-size:14px;
+    padding:10px 18px;border-radius:var(--radius-pill);border:none;cursor:pointer;
+  }
+  @media(max-width:720px){.nav-links{display:none;}}
+
+  /* ---------- hero ---------- */
+  .hero{max-width:1100px;margin:0 auto;padding:90px 24px 40px;text-align:left;}
+  .eyebrow{
+    display:inline-block;font-family:'Kalam','Caveat',cursive;color:var(--ink-soft);
+    transform:rotate(-3deg);font-size:15px;margin-bottom:10px;position:relative;
+  }
+  .hero h1{font-size:clamp(40px,7vw,84px);line-height:1.02;}
+  .annotation{
+    font-family:'Kalam','Caveat',cursive;font-size:14px;color:var(--ink-soft);
+    display:inline-flex;align-items:center;gap:4px;transform:rotate(-2deg);
+    margin-left:14px;vertical-align:middle;
+  }
+
+  .hero-frame-wrap{max-width:1100px;margin:36px auto 0;padding:0 24px;}
+  .hero-frame{
+    position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(0,0,0,0.05);
+    aspect-ratio:16/8.6;background:var(--brand-blue-deep);
+  }
+  .hero-frame img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    transform:scale(1);transition:transform .1s linear;
+    will-change:transform;
+  }
+  .hero-caption{position:absolute;bottom:14px;right:18px;color:#fff;font-size:12px;opacity:.85;}
+
+  /* ---------- fade-in-on-scroll utility ---------- */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+  .reveal.in{opacity:1;transform:translateY(0);}
+
+  /* ---------- sticky story panel ---------- */
+  .story{position:relative;max-width:1100px;margin:0 auto;padding:0 24px;}
+  .story-panel{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;min-height:130vh;padding-top:40px;}
+  .story-panel.reverse{grid-template-columns:1fr 1fr;}
+  .story-panel.reverse .story-media{order:2;}
+  .story-panel.reverse .story-copy{order:1;}
+  .story-media{position:sticky;top:110px;border-radius:var(--radius-card);overflow:hidden;background:var(--surface);aspect-ratio:1/0.85;}
+  .story-media img{width:100%;height:100%;object-fit:cover;}
+  .story-copy{padding-top:60px;}
+  .story-copy .eyebrow{display:flex;align-items:center;gap:6px;}
+  .story-copy h2{font-size:clamp(28px,4vw,44px);margin:10px 0 14px;}
+  .story-copy p{color:var(--ink-soft);font-size:17px;line-height:1.6;max-width:38ch;}
+  @media(max-width:860px){
+    .story-panel,.story-panel.reverse{grid-template-columns:1fr;min-height:auto;gap:20px;}
+    .story-panel.reverse .story-media,.story-panel.reverse .story-copy{order:initial;}
+    .story-media{position:static;aspect-ratio:16/10;}
+  }
+
+  /* ---------- dark floating-icon stat section ---------- */
+  .stat-section{position:relative;background:var(--brand-blue-deep);color:#fff;min-height:70vh;
+    margin-top:60px;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;}
+  .stat-section::before{content:"";position:absolute;inset:0;opacity:.06;
+    background-image:linear-gradient(#fff 1px, transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+    background-size:28px 28px;}
+  .icon-cube{position:absolute;width:74px;height:74px;border-radius:12px;
+    background:linear-gradient(135deg,#dcd6c4,#c9c2ab);box-shadow:0 20px 40px rgba(0,0,0,.35);
+    animation:float 8s ease-in-out infinite;}
+  .icon-cube span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .icon-cube.c1{top:10%;left:8%;animation-delay:0s;}
+  .icon-cube.c2{top:14%;right:9%;animation-delay:1.4s;}
+  .icon-cube.c3{bottom:14%;left:11%;animation-delay:2.8s;}
+  .icon-cube.c4{bottom:10%;right:7%;animation-delay:4.2s;}
+  @keyframes float{
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-14px) rotate(4deg);}
+  }
+  .stat-content{position:relative;z-index:2;max-width:560px;padding:24px;}
+  .stat-number{font-size:clamp(40px,6vw,64px);font-weight:800;}
+  .stat-content p{color:#cfd6f5;font-size:16px;margin-top:8px;}
+
+  /* ---------- carousel ---------- */
+  .carousel-section{max-width:1200px;margin:80px auto;padding:0 24px;}
+  .carousel-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;}
+  .carousel-arrows button{
+    width:38px;height:38px;border-radius:50%;border:1px solid rgba(0,0,0,0.1);
+    background:#fff;cursor:pointer;font-size:16px;margin-left:8px;
+  }
+  .carousel{
+    display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;
+    padding-bottom:10px;cursor:grab;scrollbar-width:none;
+  }
+  .carousel::-webkit-scrollbar{display:none;}
+  .carousel.dragging{cursor:grabbing;}
+  .course-card{
+    scroll-snap-align:start;flex:0 0 300px;background:var(--surface);
+    border-radius:var(--radius-card);padding:18px;transition:transform .3s ease;
+  }
+  .course-card.active{transform:scale(1.03);}
+  .course-thumb{height:150px;border-radius:14px;background:linear-gradient(135deg,var(--brand-blue),var(--brand-blue-deep));margin-bottom:14px;}
+  .badge{display:inline-block;background:#fff;border-radius:var(--radius-pill);padding:3px 10px;font-size:12px;color:var(--ink-soft);margin-bottom:8px;}
+  .course-card h3{font-size:18px;margin-bottom:6px;}
+  .course-card .meta{color:var(--ink-soft);font-size:13px;}
+
+  /* ---------- FAQ accordion ---------- */
+  .faq-section{max-width:760px;margin:80px auto;padding:0 24px;}
+  .faq-item{border-bottom:1px solid rgba(0,0,0,0.1);padding:18px 0;}
+  .faq-q{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-weight:600;font-size:16px;}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease;color:var(--ink-soft);font-size:15px;line-height:1.6;}
+  .faq-item.open .faq-a{max-height:200px;padding-top:10px;}
+  .faq-item.open .faq-q .chev{transform:rotate(45deg);}
+  .chev{transition:transform .25s ease;}
+
+  /* ---------- footer ---------- */
+  footer{position:relative;margin-top:80px;background:var(--brand-blue);color:#fff;overflow:hidden;}
+  .footer-art{position:relative;padding:60px 24px 0;display:flex;justify-content:center;}
+  .footer-art svg{width:min(520px,80%);opacity:.9;transform:translateY(0);}
+  .footer-panel{position:relative;background:rgba(0,0,0,0.18);margin-top:-40px;padding:56px 40px 30px;
+    display:flex;flex-wrap:wrap;justify-content:space-between;gap:30px;}
+  .footer-wordmark{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:min(20vw,220px);font-weight:800;color:rgba(255,255,255,0.05);white-space:nowrap;
+    pointer-events:none;
+  }
+  .footer-tagline{max-width:300px;font-size:18px;position:relative;z-index:2;}
+  .footer-links{display:flex;gap:60px;position:relative;z-index:2;font-size:14px;}
+  .footer-links h4{color:var(--accent);font-size:13px;margin-bottom:10px;}
+  .footer-links a{display:block;color:#dfe3f7;margin-bottom:6px;}
+  .footer-bottom{text-align:center;font-size:12px;color:#b9c0e6;padding:20px 0;position:relative;z-index:2;}
+
+  @media (prefers-reduced-motion: reduce){
+    .icon-cube{animation:none;}
+    html{scroll-behavior:auto;}
+    .hero-frame img{transition:none;}
+    .reveal{transition:none;opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="coords">X 0.00<br>Y 0.00</div>
+
+<nav class="navbar" id="navbar">
+  <div class="brand"><span class="brand-mark"></span> academy</div>
+  <div class="nav-links">
+    <a href="#courses">Courses</a>
+    <a href="#cohorts">Cohorts</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faqs">FAQs</a>
+  </div>
+  <button class="nav-cta">Start Free Trial</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <span class="eyebrow">SELF-PACED</span><br>
+  <h1>Learn at the speed<br>of curiosity <span class="annotation">→ not lectures</span></h1>
+</section>
+
+<div class="hero-frame-wrap">
+  <div class="hero-frame" id="heroFrame">
+    <img id="heroImg" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=60" alt="Student learning">
+    <div class="hero-caption">The academy that thinks with you, not at you.</div>
+  </div>
+</div>
+
+<!-- STORY PANEL 1 -->
+<section class="story">
+  <div class="story-panel">
+    <div class="story-media reveal">
+      <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=900&q=60" alt="Adaptive path">
+    </div>
+    <div class="story-copy reveal">
+      <span class="eyebrow">① PACED FOR YOU</span>
+      <h2>Adaptive Learning Paths</h2>
+      <p>Your curriculum reshapes itself around your pace, your goals, and what you already know — no wasted modules.</p>
+    </div>
+  </div>
+
+  <!-- STORY PANEL 2 (reversed) -->
+  <div class="story-panel reverse">
+    <div class="story-media reveal">
+      <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?w=900&q=60" alt="AI mentor feedback">
+    </div>
+    <div class="story-copy reveal">
+      <span class="eyebrow">② OPTIONS, MULTIPLIED</span>
+      <h2>AI Mentor Feedback</h2>
+      <p>Submit your work and your AI mentor marks it up line by line, explaining exactly what to fix and why.</p>
+    </div>
+  </div>
+
+  <!-- STORY PANEL 3 -->
+  <div class="story-panel">
+    <div class="story-media reveal">
+      <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=900&q=60" alt="Instant portfolio">
+    </div>
+    <div class="story-copy reveal">
+      <span class="eyebrow">③ IMAGINATION, REALIZED</span>
+      <h2>Instant Portfolio</h2>
+      <p>Every project you finish auto-compiles into a shareable, recruiter-ready portfolio piece — no manual write-ups.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FLOATING ICON STAT SECTION -->
+<section class="stat-section">
+  <div class="icon-cube c1"><span>🎓</span></div>
+  <div class="icon-cube c2"><span>💻</span></div>
+  <div class="icon-cube c3"><span>🤝</span></div>
+  <div class="icon-cube c4"><span>📅</span></div>
+  <div class="stat-content reveal">
+    <div class="stat-number" data-target="12000">0</div>
+    <p>graduates placed in roles they actually wanted — not just a certificate.</p>
+  </div>
+</section>
+
+<!-- COURSE CAROUSEL -->
+<section class="carousel-section" id="courses">
+  <div class="carousel-head">
+    <h2 style="font-size:32px;">Popular courses</h2>
+    <div class="carousel-arrows">
+      <button id="prevBtn" aria-label="Previous course">←</button>
+      <button id="nextBtn" aria-label="Next course">→</button>
+    </div>
+  </div>
+  <div class="carousel" id="courseCarousel">
+    <div class="course-card active"><div class="course-thumb"></div><span class="badge">Beginner</span><h3>Product Design Fundamentals</h3><div class="meta">6 weeks · Cohort-based</div></div>
+    <div class="course-card"><div class="course-thumb"></div><span class="badge">Intermediate</span><h3>Full-Stack Web Development</h3><div class="meta">12 weeks · Self-paced</div></div>
+    <div class="course-card"><div class="course-thumb"></div><span class="badge">Advanced</span><h3>Applied Machine Learning</h3><div class="meta">10 weeks · Cohort-based</div></div>
+    <div class="course-card"><div class="course-thumb"></div><span class="badge">Beginner</span><h3>Data Analytics with SQL</h3><div class="meta">5 weeks · Self-paced</div></div>
+    <div class="course-card"><div class="course-thumb"></div><span class="badge">Intermediate</span><h3>UX Research Methods</h3><div class="meta">7 weeks · Cohort-based</div></div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section" id="faqs">
+  <h2 style="font-size:32px;margin-bottom:20px;">Frequently asked</h2>
+  <div class="faq-item">
+    <div class="faq-q">Do I get a certificate? <span class="chev">+</span></div>
+    <div class="faq-a">Yes — every completed course issues a verifiable certificate you can add to LinkedIn.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Is it self-paced or scheduled? <span class="chev">+</span></div>
+    <div class="faq-a">Both — choose a self-paced track any time, or join a cohort with a fixed weekly schedule and live sessions.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">What if I get stuck? <span class="chev">+</span></div>
+    <div class="faq-a">Your AI mentor gives instant feedback, and human mentors hold weekly office hours for every cohort.</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-art">
+    <svg viewBox="0 0 200 120" fill="none" stroke="white" stroke-width="1.2">
+      <path d="M100 10 L190 55 L100 100 L10 55 Z"/>
+      <path d="M55 68 V95 M145 68 V95"/>
+      <circle cx="100" cy="55" r="18"/>
+    </svg>
+  </div>
+  <div class="footer-panel">
+    <div class="footer-wordmark">academy</div>
+    <div class="footer-tagline">Online academy learning, at the speed of curiosity, not lectures.</div>
+    <div class="footer-links">
+      <div><h4>Quick links</h4><a href="#courses">Courses</a><a href="#pricing">Pricing</a></div>
+      <div><h4>Connect</h4><a href="#">LinkedIn</a><a href="#">Discord</a><a href="#">Instagram</a><a href="#">hello@academy.com</a></div>
+    </div>
+  </div>
+  <div class="footer-bottom">Copyright © 2026 academy · Terms · Privacy</div>
+</footer>
+
+<script>
+// cursor coordinate readout
+const coords = document.getElementById('coords');
+window.addEventListener('mousemove', e=>{
+  coords.innerHTML = `X ${e.clientX.toFixed(2)}<br>Y ${e.clientY.toFixed(2)}`;
+});
+
+// navbar shadow on scroll
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', ()=>{
+  navbar.classList.toggle('scrolled', window.scrollY > 40);
+}, {passive:true});
+
+// hero scroll-zoom
+const heroImg = document.getElementById('heroImg');
+function updateHeroZoom(){
+  const progress = Math.min(Math.max(window.scrollY / 600, 0), 1);
+  const scale = 1 + progress * 0.35;
+  heroImg.style.transform = `scale(${scale})`;
+}
+window.addEventListener('scroll', ()=>requestAnimationFrame(updateHeroZoom), {passive:true});
+
+// reveal-on-scroll
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); } });
+},{threshold:0.2});
+revealEls.forEach(el=>io.observe(el));
+
+// count-up stat (fires once)
+const statNumber = document.querySelector('.stat-number');
+let counted = false;
+const statIO = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting && !counted){
+      counted = true;
+      const target = parseInt(statNumber.dataset.target,10);
+      let current = 0;
+      const step = Math.ceil(target/60);
+      const timer = setInterval(()=>{
+        current += step;
+        if(current >= target){ current = target; clearInterval(timer); }
+        statNumber.textContent = current.toLocaleString()+'+';
+      },20);
+    }
+  });
+},{threshold:0.5});
+statIO.observe(statNumber);
+
+// carousel arrows + drag-to-scroll + active card highlight
+const carousel = document.getElementById('courseCarousel');
+const cardWidth = 320;
+document.getElementById('nextBtn').onclick = ()=>carousel.scrollBy({left:cardWidth,behavior:'smooth'});
+document.getElementById('prevBtn').onclick = ()=>carousel.scrollBy({left:-cardWidth,behavior:'smooth'});
+
+let isDown = false, startX, scrollLeft;
+carousel.addEventListener('mousedown', e=>{
+  isDown = true; carousel.classList.add('dragging');
+  startX = e.pageX - carousel.offsetLeft; scrollLeft = carousel.scrollLeft;
+});
+['mouseleave','mouseup'].forEach(evt=>carousel.addEventListener(evt, ()=>{isDown=false; carousel.classList.remove('dragging');}));
+carousel.addEventListener('mousemove', e=>{
+  if(!isDown) return; e.preventDefault();
+  const x = e.pageX - carousel.offsetLeft;
+  carousel.scrollLeft = scrollLeft - (x - startX);
+});
+
+const cards = document.querySelectorAll('.course-card');
+const cardIO = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{
+    en.target.classList.toggle('active', en.intersectionRatio > 0.7);
+  });
+},{threshold:[0,0.7,1], root:carousel});
+cards.forEach(c=>cardIO.observe(c));
+
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item=>{
+  item.querySelector('.faq-q').addEventListener('click', ()=>{
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+    if(!wasOpen) item.classList.add('open');
+  });
+});
+
+// footer parallax
+const footerArt = document.querySelector('.footer-art svg');
+window.addEventListener('scroll', ()=>{
+  const rect = footerArt.getBoundingClientRect();
+  if(rect.top < window.innerHeight && rect.bottom > 0){
+    const offset = (window.innerHeight - rect.top) * 0.05;
+    footerArt.style.transform = `translateY(-${offset}px)`;
+  }
+}, {passive:true});
+</script>
+
+</body>
+</html>
