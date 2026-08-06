@@ -403,7 +403,23 @@ export const sendAdminOTP = async (email: string): Promise<AuthResponse> => {
       body: JSON.stringify({ email }),
     });
 
-    const data: AuthResponse & { hint?: string } = await response.json();
+    const rawText = await response.text();
+    let data: AuthResponse & { hint?: string } = {
+      success: false,
+      message: "Failed to send OTP",
+    };
+    try {
+      data = JSON.parse(rawText) as AuthResponse & { hint?: string };
+    } catch {
+      data = {
+        success: false,
+        message:
+          response.status === 502
+            ? "Admin API is temporarily unavailable (502). Check that the Render service is live, then try again."
+            : `Failed to send OTP (HTTP ${response.status}).`,
+      };
+    }
+
     const message =
       data.hint && data.message
         ? `${data.message} ${data.hint}`

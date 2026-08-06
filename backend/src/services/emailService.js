@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import { sendBrevoEmail } from "./brevoService.js";
 
 function getEmailConfig() {
+  const mode = process.env.BREVO_EMAIL_MODE?.trim().toLowerCase() || "auto";
   return {
     smtpHost: process.env.BREVO_SMTP_HOST?.trim() || "smtp-relay.brevo.com",
     smtpPort: Number(process.env.BREVO_SMTP_PORT || 587),
@@ -11,11 +12,15 @@ function getEmailConfig() {
     gmailAppPassword: process.env.GMAIL_APP_PASSWORD?.trim(),
     senderEmail: process.env.BREVO_SENDER_EMAIL?.trim(),
     senderName: process.env.BREVO_SENDER_NAME?.trim() || "GenValue Academy",
-    /** When true (default if SMTP key exists), skip Brevo REST API — works from any IP. */
-    smtpOnly:
-      process.env.BREVO_EMAIL_MODE?.trim() === "smtp-only" ||
-      (process.env.BREVO_EMAIL_MODE?.trim() !== "api" &&
-        Boolean(process.env.BREVO_SMTP_KEY?.trim())),
+    /**
+     * auto (default): SMTP → Gmail → Brevo HTTP API
+     * smtp-first: same as auto (SMTP preferred, API fallback — needed on Render when SMTP ports are blocked)
+     * smtp-only: never use HTTP API
+     * api: skip SMTP, use Brevo HTTP API only
+     */
+    mode,
+    preferApiOnly: mode === "api",
+    smtpOnly: mode === "smtp-only",
     devConsole: process.env.ADMIN_OTP_DEV_CONSOLE === "true",
     isDev: process.env.NODE_ENV !== "production",
   };
@@ -126,12 +131,13 @@ function sendViaDevConsole(params, config) {
 
 /**
  * Send transactional email — tries Brevo SMTP, Gmail SMTP, Brevo API, then dev console.
+ * On Render, outbound SMTP (587/465) is often blocked; HTTP API fallback is required.
  */
 export async function sendTransactionalEmail(params) {
   const config = getEmailConfig();
   const errors = [];
 
-  if (config.brevoSmtpKey) {
+  if (!config.preferApiOnly && config.brevoSmtpKey) {
     const smtpResult = await sendViaBrevoSmtp(params, config);
     if (smtpResult.ok) {
       return smtpResult;
@@ -140,7 +146,7 @@ export async function sendTransactionalEmail(params) {
     errors.push(`Brevo SMTP: ${smtpResult.message}`);
   }
 
-  if (config.gmailUser && config.gmailAppPassword) {
+  if (!config.preferApiOnly && config.gmailUser && config.gmailAppPassword) {
     const gmailResult = await sendViaGmail(params, config);
     if (gmailResult.ok) {
       return gmailResult;
@@ -149,6 +155,7 @@ export async function sendTransactionalEmail(params) {
     errors.push(`Gmail: ${gmailResult.message}`);
   }
 
+  // Always try HTTP API unless explicitly smtp-only (Render needs this fallback)
   if (!config.smtpOnly) {
     const apiResult = await sendBrevoEmail(params);
     if (apiResult.ok) {
@@ -164,24 +171,35 @@ export async function sendTransactionalEmail(params) {
   }
 
   const isIpBlocked = errors.some(
-    (e) => e.includes("unrecognised IP") || e.includes("unauthorized")
+    (e) => e.includes("unrecognised IP") || e.includes("unauthorised IP") || e.includes("unauthorized")
   );
   const isSmtpAuth = errors.some((e) => e.includes("Authentication failed"));
+  const isSmtpBlocked = errors.some(
+    (e) =>
+      e.includes("ECONNECTION") ||
+      e.includes("ETIMEDOUT") ||
+      e.includes("ECONNREFUSED") ||
+      e.includes("Greeting never received") ||
+      e.includes("timeout")
+  );
 
   let hint =
-    "Fix email delivery in backend/.env. See backend/scripts/test-smtp.js";
+    "Fix email delivery env vars on the host (Render/Vercel). Prefer BREVO_EMAIL_MODE=auto so SMTP can fall back to Brevo API.";
 
   if (isSmtpAuth) {
     hint =
-      "Brevo SMTP login is wrong. In Brevo → SMTP & API, copy the SMTP Login and set BREVO_SMTP_USER (use xsmtpsib key as BREVO_SMTP_KEY). SMTP works from any IP — no whitelist needed.";
+      "Brevo SMTP login is wrong. In Brevo → SMTP & API, copy the SMTP Login into BREVO_SMTP_USER and the xsmtpsib key into BREVO_SMTP_KEY.";
   } else if (isIpBlocked) {
     hint =
-      "Brevo API requires IP whitelisting. Use SMTP instead: set BREVO_SMTP_KEY + correct BREVO_SMTP_USER (BREVO_EMAIL_MODE=smtp-only is default).";
+      "Brevo API blocked this server IP. In Brevo → Security → Authorized IPs, allow all IPs (or add Render’s outbound IPs), or use a host that can reach Brevo SMTP.";
+  } else if (isSmtpBlocked) {
+    hint =
+      "Outbound SMTP appears blocked (common on Render free). Set BREVO_EMAIL_MODE=auto and BREVO_API_KEY, and disable IP restrict in Brevo for the API key.";
   }
 
   return {
     ok: false,
-    message: errors.join(" | "),
+    message: errors.join(" | ") || "No email channel succeeded",
     hint,
   };
 }
