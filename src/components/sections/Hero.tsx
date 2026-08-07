@@ -88,22 +88,9 @@ const headlineVariants = {
 } as const;
 
 export function Hero() {
-  const [zoomScale, setZoomScale] = useState(1);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const progress = Math.min(Math.max(window.scrollY / 600, 0), 1);
-      setZoomScale(1 + progress * 0.2);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -293,11 +280,7 @@ export function Hero() {
 
         {/* Video Display Area */}
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#070B19]">
-          <motion.div
-            style={{ scale: zoomScale }}
-            transition={{ ease: "linear" }}
-            className="relative h-full w-full"
-          >
+          <div className="relative h-full w-full">
             <video
               ref={videoRef}
               src={HERO_VIDEO_SRC}
@@ -309,7 +292,7 @@ export function Hero() {
               controls={false}
               className="h-full w-full object-cover"
             />
-          </motion.div>
+          </div>
 
           {/* Floating Caption Badge */}
           <div className="absolute bottom-5 right-6 rounded-full bg-black/65 px-5 py-2 font-annotation text-xs font-bold text-white backdrop-blur-md sm:text-sm">

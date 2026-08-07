@@ -11,6 +11,7 @@ import { ensureSuperAdminSeeded } from "./controllers/authorizedAdminController.
 import { ensureAuthorizedAdminSchema } from "./utils/ensureAuthorizedAdminSchema.js";
 import { ensureAdminOtpSchema } from "./utils/ensureAdminOtpSchema.js";
 import { ensureUserRemovalLogSchema } from "./utils/ensureUserRemovalLogSchema.js";
+import { ensureUserDeactivationSchema } from "./utils/ensureUserDeactivationSchema.js";
 import { ensureUserRoleEnum } from "./utils/ensureUserRoleEnum.js";
 import { ensureFirebaseAdminReady } from "./config/firebase.js";
 import { probeFirebasePublicKeyVerification } from "./utils/firebaseIdTokenPublicVerify.js";
@@ -137,6 +138,9 @@ async function startServer() {
 
     // Student removal audit log table
     await ensureUserRemovalLogSchema();
+
+    // Temporary student deactivation columns
+    await ensureUserDeactivationSchema();
 
     // Ensure Role enum values exist in CockroachDB
     await ensureUserRoleEnum();

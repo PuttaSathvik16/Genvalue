@@ -1,6 +1,9 @@
 import { prisma } from "../config/database.js";
 import { sendBrevoEmail } from "../services/brevoService.js";
-import { buildAdminInviteEmailHtml } from "../templates/adminOtpEmail.js";
+import {
+  buildAdminWelcomeEmailHtml,
+  buildAdminWelcomeEmailText,
+} from "../templates/adminWelcomeEmail.js";
 import { verifyAdminSessionToken } from "../utils/adminSession.js";
 import {
   ensureAuthorizedAdminSchema,
@@ -409,12 +412,20 @@ export const addAuthorizedAdmin = async (req, res) => {
         },
       });
 
-      await sendInviteEmail(normalizedEmail, req.admin.email);
+      const welcomeEmail = await sendAdminWelcomeEmail({
+        email: normalizedEmail,
+        name: reactivated.name,
+        addedByEmail: req.admin.email,
+        isReactivate: true,
+      });
 
       return res.status(200).json({
         success: true,
-        message: "Admin access reactivated",
+        message: welcomeEmail.ok
+          ? "Admin access reactivated and welcome email sent"
+          : "Admin access reactivated (welcome email could not be sent)",
         data: reactivated,
+        emailSent: welcomeEmail.ok,
       });
     }
 
@@ -438,12 +449,20 @@ export const addAuthorizedAdmin = async (req, res) => {
       },
     });
 
-    await sendInviteEmail(normalizedEmail, req.admin.email);
+    const welcomeEmail = await sendAdminWelcomeEmail({
+      email: normalizedEmail,
+      name: created.name,
+      addedByEmail: req.admin.email,
+      isReactivate: false,
+    });
 
     res.status(201).json({
       success: true,
-      message: "Admin email authorized successfully",
+      message: welcomeEmail.ok
+        ? "Admin email authorized and welcome email sent"
+        : "Admin email authorized (welcome email could not be sent)",
       data: created,
+      emailSent: welcomeEmail.ok,
     });
   } catch (error) {
     console.error("addAuthorizedAdmin error:", error);
@@ -572,17 +591,53 @@ export const getAdminProfile = async (req, res) => {
   });
 };
 
-async function sendInviteEmail(email, addedByEmail) {
+const PRODUCTION_FRONTEND_URL = "https://genvalue-ten.vercel.app";
+const ADMIN_PORTAL_LOGIN_PATH = "/admin/auth/login";
+
+/**
+ * Welcome emails should deep-link to the live Admin login page.
+ * Prefer FRONTEND_URL when it's a public https origin; otherwise use production.
+ */
+function getAdminPortalLoginUrl() {
+  const configured = process.env.FRONTEND_URL?.trim().replace(/\/+$/, "") || "";
+  const isLocal =
+    !configured ||
+    /localhost|127\.0\.0\.1/i.test(configured) ||
+    configured.startsWith("http://");
+  const base = isLocal ? PRODUCTION_FRONTEND_URL : configured;
+  return `${base}${ADMIN_PORTAL_LOGIN_PATH}`;
+}
+
+async function sendAdminWelcomeEmail({ email, name, addedByEmail, isReactivate = false }) {
+  const portalUrl = getAdminPortalLoginUrl();
+  const subject = isReactivate
+    ? "GenValue Academy — Your admin access has been restored"
+    : "Welcome to GenValue Academy Admin Portal";
+
   const result = await sendBrevoEmail({
-    to: { email, name: email.split("@")[0] },
-    subject: "GenValue Academy — Admin Portal Access Granted",
-    htmlContent: buildAdminInviteEmailHtml({ email, addedByEmail }),
-    textContent: `${email} has been authorized to access the GenValue Academy admin portal by ${addedByEmail}. Sign in with your email to receive a one-time passcode.`,
+    to: { email, name: (name && String(name).trim()) || email.split("@")[0] },
+    subject,
+    htmlContent: buildAdminWelcomeEmailHtml({
+      email,
+      name,
+      addedByEmail,
+      portalUrl,
+      isReactivate,
+    }),
+    textContent: buildAdminWelcomeEmailText({
+      email,
+      name,
+      addedByEmail,
+      portalUrl,
+      isReactivate,
+    }),
   });
 
   if (!result.ok) {
-    console.warn("[authorizedAdmin] invite email failed:", result.message);
+    console.warn("[authorizedAdmin] welcome email failed:", result.message);
   }
+
+  return result;
 }
 
 export async function ensureSuperAdminSeeded() {

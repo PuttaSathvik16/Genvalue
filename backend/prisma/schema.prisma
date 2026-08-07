@@ -56,6 +56,10 @@ model User {
   
   // Account Information
   membershipPlan    String?   @default("FREE")
+
+  // Temporary deactivation (admin). Null / past date = active.
+  deactivatedUntil    DateTime?
+  deactivationReason  String?   @db.String
   
   // Timestamps
   createdAt         DateTime  @default(now())

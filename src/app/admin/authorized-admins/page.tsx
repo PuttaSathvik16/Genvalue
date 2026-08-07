@@ -169,7 +169,7 @@ export default function AuthorizedAdminsPage() {
 
       const limit = grantSuperAdmin ? null : parseUserLimitInput(userLimit);
 
-      await addAuthorizedAdmin(email, {
+      const result = await addAuthorizedAdmin(email, {
         name: name || undefined,
         roles: grantSuperAdmin ? ["CTO"] : selectedRoles,
         userLimit: limit,
@@ -183,7 +183,11 @@ export default function AuthorizedAdminsPage() {
       setUserLimit("");
       setGrantSuperAdmin(false);
       setGrantSecurityAccess(false);
-      setSuccess(`Access granted to ${email.trim().toLowerCase()}. They will receive an email notification.`);
+      setSuccess(
+        result.emailSent
+          ? `Access granted to ${email.trim().toLowerCase()}. A GenValue welcome email was sent.`
+          : `Access granted to ${email.trim().toLowerCase()}, but the welcome email could not be sent. Check Brevo settings.`
+      );
       await loadPageData();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to add admin");

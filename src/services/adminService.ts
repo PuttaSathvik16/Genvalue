@@ -173,7 +173,13 @@ export interface AdminUser {
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt: string | null;
+  deactivatedUntil?: string | null;
+  deactivationReason?: string | null;
+  isDeactivated?: boolean;
 }
+
+export const DEACTIVATION_DAY_OPTIONS = [7, 14, 30, 90] as const;
+export type DeactivationDays = (typeof DEACTIVATION_DAY_OPTIONS)[number];
 
 export interface AdminUsersStats {
   totalStudents: number;
@@ -297,7 +303,7 @@ export async function addAuthorizedAdmin(
     isSuperAdmin?: boolean;
     portalSections?: PortalSectionKey[];
   }
-): Promise<void> {
+): Promise<{ emailSent: boolean; message: string }> {
   const response = await fetch(`${API_URL}/auth/admin/authorized-emails`, {
     method: "POST",
     headers: getAdminAuthHeaders(),
@@ -315,6 +321,11 @@ export async function addAuthorizedAdmin(
   if (!response.ok) {
     throw new Error(data.message || "Failed to add admin email");
   }
+
+  return {
+    emailSent: Boolean(data.emailSent),
+    message: typeof data.message === "string" ? data.message : "Admin email authorized",
+  };
 }
 
 export async function updateAuthorizedAdmin(
@@ -425,6 +436,46 @@ export async function removeStudent(userId: string, reason: string): Promise<voi
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.message || "Failed to remove student");
+  }
+}
+
+export async function deactivateStudent(
+  userId: string,
+  days: DeactivationDays,
+  reason: string
+): Promise<{ deactivatedUntil: string | null; days: number }> {
+  const response = await fetch(
+    `${API_URL}/admin/users/${encodeURIComponent(userId)}/deactivate`,
+    {
+      method: "POST",
+      headers: getAdminAuthHeaders(),
+      body: JSON.stringify({ days, reason: reason.trim() }),
+    }
+  );
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to deactivate student");
+  }
+
+  return {
+    deactivatedUntil: data.data?.deactivatedUntil ?? null,
+    days: data.data?.days ?? days,
+  };
+}
+
+export async function reactivateStudent(userId: string): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/admin/users/${encodeURIComponent(userId)}/reactivate`,
+    {
+      method: "POST",
+      headers: getAdminAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to reactivate student");
   }
 }
 
