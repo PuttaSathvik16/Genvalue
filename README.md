@@ -1,4 +1,4 @@
-# GenValue Academy
+# GenValue
 
 Practical AI education platform for **GenValue Academy** — marketing site, student LMS, and admin portal in one codebase.
 
