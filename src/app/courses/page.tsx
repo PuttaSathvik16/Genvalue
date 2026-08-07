@@ -117,11 +117,11 @@ export default function CoursesPage() {
             <h1 className="font-display-custom mt-2 text-balance text-4xl font-extrabold tracking-tight text-[#2A2A28] dark:text-white sm:text-5xl md:text-6xl">
               {course.title}
             </h1>
-            <p className="mt-4 text-lg font-medium leading-relaxed text-[#6B6558] dark:text-slate-300">
+            <p className="mt-3 text-lg font-medium leading-relaxed text-[#6B6558] dark:text-slate-300">
               {course.subtitle}
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-2.5">
+            <div className="mt-5 flex flex-wrap gap-2.5">
               {course.stats.map((stat) => (
                 <span
                   key={stat.label}
@@ -133,8 +133,8 @@ export default function CoursesPage() {
               ))}
             </div>
 
-            <div className="mt-8 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-              <EnrollNowLink className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#E8622E] px-8 text-base font-bold uppercase tracking-wider text-white shadow-xl transition hover:bg-[#d55321]">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <EnrollNowLink className="inline-flex h-14 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#E8622E] px-8 text-base font-bold uppercase tracking-wider text-white shadow-xl transition hover:bg-[#d55321]">
                 Enroll Now
               </EnrollNowLink>
               <DownloadButton
@@ -487,7 +487,7 @@ export default function CoursesPage() {
                 <span className="text-xs font-bold uppercase text-[#E8622E]">CAPSTONE DELIVERABLE:</span>
                 <p className="mt-1 text-xs italic text-white">&ldquo;{capstoneWeek?.assignment}&rdquo;</p>
               </div>
-              <EnrollNowLink className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#E8622E] px-8 text-xs font-bold uppercase tracking-wider text-white shadow-lg transition hover:bg-[#d55321]">
+              <EnrollNowLink className="inline-flex h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#E8622E] px-8 text-xs font-bold uppercase tracking-wider text-white shadow-lg transition hover:bg-[#d55321]">
                 Enroll Now
               </EnrollNowLink>
             </div>
@@ -508,7 +508,7 @@ export default function CoursesPage() {
       >
         <EnrollNowLink
           aria-label="Enroll in AI Tools Mastery program"
-          className="pointer-events-auto inline-flex min-h-12 items-center justify-center rounded-full bg-[#E8622E] px-8 text-sm font-bold uppercase tracking-wider text-white shadow-2xl transition hover:bg-[#d55321]"
+          className="pointer-events-auto inline-flex h-12 items-center justify-center whitespace-nowrap rounded-full bg-[#E8622E] px-8 text-sm font-bold uppercase tracking-wider text-white shadow-2xl transition hover:bg-[#d55321]"
         >
           Enroll Now
         </EnrollNowLink>

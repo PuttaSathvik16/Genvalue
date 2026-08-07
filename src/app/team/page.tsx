@@ -57,16 +57,18 @@ export default function TeamPage() {
           <h2 id="team-genvalue-story" className="font-display-custom mt-2 text-3xl font-extrabold text-white sm:text-4xl">
             The Story Behind the Name
           </h2>
-          <div className="mt-6 space-y-4 text-sm font-medium leading-relaxed text-[#DFE3F7] sm:text-base">
+          <div className="mt-5 space-y-4 text-sm font-medium leading-relaxed text-[#DFE3F7] sm:text-base">
             <p>
-              <strong className="font-bold text-white">GenValue</strong> reflects how{" "}
-              <strong className="font-bold text-white">Sathvik Putta</strong> approaches
-              education - curiosity without hype, discipline without ego, and showing up for learners the way
-              you&apos;d show up for family.
+              <strong className="font-bold text-white">GenValue</strong>
+              {" reflects how "}
+              <strong className="font-bold text-white">Sathvik Putta</strong>
+              {
+                " approaches education — curiosity without hype, discipline without ego, and showing up for learners the way you'd show up for family."
+              }
             </p>
             <p>
               GenValue is a promise that judgment-first teaching and real opportunity grow from those roots.
-              When you see GenValue, read it as values in practice - not a logo dreamed up overnight.
+              When you see GenValue, read it as values in practice — not a logo dreamed up overnight.
             </p>
           </div>
         </motion.div>

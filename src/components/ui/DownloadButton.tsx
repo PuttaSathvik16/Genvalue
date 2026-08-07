@@ -26,9 +26,9 @@ export interface DownloadButtonProps {
 }
 
 const sizeClasses = {
-  sm: "gap-1.5 px-3 py-2 text-sm min-h-9",
-  md: "gap-2 px-6 py-3 text-base min-h-12",
-  lg: "gap-2.5 px-8 py-3.5 text-lg min-h-14",
+  sm: "gap-1.5 px-3 py-2 text-sm h-9",
+  md: "gap-2 px-6 py-3 text-base h-12",
+  lg: "gap-2.5 px-8 py-3.5 text-base h-14",
 } as const;
 
 const iconOnlySizeClasses = {
@@ -96,7 +96,7 @@ export function DownloadButton({
   }, [busy, filename]);
 
   const base =
-    "inline-flex items-center justify-center rounded-full font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
+    "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
 
   const sizeClass = iconOnly ? iconOnlySizeClasses[size] : sizeClasses[size];
   const iconClass =
@@ -133,7 +133,7 @@ export function DownloadButton({
       {iconOnly ? (
         <span className="sr-only">{busy ? "Downloading…" : label}</span>
       ) : (
-        <span className="inline-flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 whitespace-nowrap">
           <span>{busy ? "Downloading…" : label}</span>
           {!busy && fileSize ? (
             <span className="rounded-md bg-black/5 px-1.5 py-0.5 text-[0.65em] font-medium uppercase tracking-wide text-zinc-600 dark:bg-white/10 dark:text-slate-400">

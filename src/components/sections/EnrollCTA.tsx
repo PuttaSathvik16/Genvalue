@@ -97,12 +97,12 @@ export function EnrollCTA() {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
-          <EnrollNowLink className="inline-flex min-h-12 min-w-[220px] items-center justify-center rounded-full bg-[#E8622E] px-10 text-base font-bold uppercase tracking-wider text-white shadow-xl transition hover:bg-[#d55321] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8622E]">
+          <EnrollNowLink className="inline-flex h-12 min-w-[220px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#E8622E] px-10 text-base font-bold uppercase tracking-wider text-white shadow-xl transition hover:bg-[#d55321] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8622E]">
             Enroll Now
           </EnrollNowLink>
           <Link
             href="/contact"
-            className="inline-flex min-h-12 items-center justify-center rounded-full border-2 border-white/40 bg-transparent px-8 text-base font-bold text-white transition hover:bg-white/10"
+            className="inline-flex h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-2 border-white/40 bg-transparent px-8 text-base font-bold text-white transition hover:bg-white/10"
           >
             Contact Us
           </Link>
