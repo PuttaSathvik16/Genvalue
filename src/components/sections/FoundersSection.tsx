@@ -46,7 +46,6 @@ function founderBadgeLabel(founder: Founder): string {
   if (role.includes("chief technology") || /(^|[^a-z])cto([^a-z]|$)/.test(role)) return "CTO";
   if (role.includes("chief product") || /(^|[^a-z])cpo([^a-z]|$)/.test(role)) return "CPO";
   if (role.includes("founder")) return "Founder";
-  if (role.includes("employee")) return "Employee";
   return founder.role.split("&")[0]?.trim() || "Team";
 }
 
@@ -224,8 +223,7 @@ export function FoundersSection({ id, variant = "default" }: FoundersSectionProp
     ? founders.filter((f) => f.id === "onarjae-bonhometre" || f.id === "sathvik-putta")
     : founders;
   const topRow = people.slice(0, 2);
-  const midRow = people.slice(2, 5);
-  const lowerRow = people.slice(5);
+  const bottomRow = people.slice(2);
 
   return (
     <section
@@ -258,7 +256,7 @@ export function FoundersSection({ id, variant = "default" }: FoundersSectionProp
           ))}
         </div>
       ) : (
-        /* Team (default): pyramid — founders, then CPO/CTO row, then employees */
+        /* Team (default): pyramid — 2 centered over 3 equal cards */
         <div className="flex flex-col gap-8">
           <div className="mx-auto grid w-full grid-cols-1 gap-8 sm:max-w-xl md:max-w-none md:grid-cols-2 lg:w-[calc(((100%-4rem)*2/3)+2rem)] lg:max-w-none lg:gap-8">
             {topRow.map((founder, index) => (
@@ -266,30 +264,10 @@ export function FoundersSection({ id, variant = "default" }: FoundersSectionProp
             ))}
           </div>
 
-          {midRow.length > 0 ? (
+          {bottomRow.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 sm:mx-auto sm:max-w-xl md:mx-0 md:max-w-none md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-              {midRow.map((founder, index) => (
+              {bottomRow.map((founder, index) => (
                 <FounderCard key={founder.id} founder={founder} index={topRow.length + index} />
-              ))}
-            </div>
-          ) : null}
-
-          {lowerRow.length > 0 ? (
-            <div
-              className={`mx-auto grid w-full grid-cols-1 gap-8 ${
-                lowerRow.length === 1
-                  ? "sm:max-w-xl md:max-w-xl"
-                  : lowerRow.length === 2
-                    ? "sm:max-w-xl md:max-w-none md:grid-cols-2 lg:w-[calc(((100%-4rem)*2/3)+2rem)]"
-                    : "sm:max-w-xl md:max-w-none md:grid-cols-2 lg:grid-cols-3"
-              }`}
-            >
-              {lowerRow.map((founder, index) => (
-                <FounderCard
-                  key={founder.id}
-                  founder={founder}
-                  index={topRow.length + midRow.length + index}
-                />
               ))}
             </div>
           ) : null}
