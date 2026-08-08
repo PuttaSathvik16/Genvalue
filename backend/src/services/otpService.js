@@ -6,7 +6,11 @@ import {
   buildAdminOtpEmailText,
 } from "../templates/adminOtpEmail.js";
 import { createAdminSessionToken } from "../utils/adminSession.js";
-import { normalizePortalSections } from "../constants/adminPortalRoles.js";
+import {
+  getEffectivePortalSections,
+  normalizePortalSections,
+} from "../constants/adminPortalRoles.js";
+import { ensureAdminOrgRoleCache } from "./adminOrgRoleStore.js";
 import { sendAdminLoginAlertEmail } from "../utils/adminLoginAlert.js";
 
 const OTP_EXPIRY_MINUTES = 10;
@@ -329,6 +333,8 @@ export async function verifyAdminOtp(rawEmail, rawOtp, loginContext = {}) {
 
   await deleteAllOtpsForEmail(email);
 
+  await ensureAdminOrgRoleCache();
+
   const adminRoles = authorizedAdmin.roles?.length
     ? authorizedAdmin.roles
     : authorizedAdmin.isSuperAdmin
@@ -336,6 +342,11 @@ export async function verifyAdminOtp(rawEmail, rawOtp, loginContext = {}) {
       : [];
   const adminUserLimit = authorizedAdmin.isSuperAdmin ? null : authorizedAdmin.userLimit;
   const adminPortalSections = normalizePortalSections(authorizedAdmin.portalSections);
+  const effectivePortalSections = getEffectivePortalSections({
+    isSuperAdmin: authorizedAdmin.isSuperAdmin,
+    roles: adminRoles,
+    portalSections: adminPortalSections,
+  });
 
   const adminToken = createAdminSessionToken({
     userId: dbUser.id,
@@ -374,6 +385,7 @@ export async function verifyAdminOtp(rawEmail, rawOtp, loginContext = {}) {
       isSuperAdmin: authorizedAdmin.isSuperAdmin,
       roles: adminRoles,
       portalSections: adminPortalSections,
+      effectivePortalSections,
       userLimit: adminUserLimit,
       adminToken,
     },

@@ -28,6 +28,11 @@ import {
   getAdminPortalSettings,
   updateAdminPortalSettings,
 } from "../controllers/authorizedAdminController.js";
+import {
+  listAdminOrgRoles,
+  createAdminOrgRole,
+  updateAdminOrgRole,
+} from "../controllers/adminOrgRoleController.js";
 import { verifyToken, checkRole } from "../middleware/auth.js";
 import {
   authRateLimit,
@@ -91,6 +96,14 @@ router.delete(
   requireAdminSession,
   requireSuperAdmin,
   removeAuthorizedAdmin
+);
+router.get("/admin/org-roles", requireAdminSession, requireSuperAdmin, listAdminOrgRoles);
+router.post("/admin/org-roles", requireAdminSession, requireSuperAdmin, createAdminOrgRole);
+router.patch(
+  "/admin/org-roles/:key",
+  requireAdminSession,
+  requireSuperAdmin,
+  updateAdminOrgRole
 );
 
 // Protected routes (require authentication)

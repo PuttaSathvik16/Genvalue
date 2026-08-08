@@ -199,6 +199,22 @@ model AdminPortalSettings {
   @@map("admin_portal_settings")
 }
 
+// Org title roles for the admin portal (CREATED in UI; portal section keys stay closed-set in code)
+model AdminOrgRole {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  label          String
+  portalSections String[] @default([])
+  isActive       Boolean  @default(true)
+  isSystem       Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("admin_org_roles")
+}
+
 // Announcement model - for admin-created announcements
 model Announcement {
   id              String    @id @default(uuid())

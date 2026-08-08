@@ -17,10 +17,10 @@ import {
   isAdminTokenValue,
   LMS_AUTH_TOKEN_KEY,
 } from "@/lib/authTokens";
-import type { PortalSectionKey } from "@/lib/adminRoles";
+import type { AdminOrgRoleDefinition, PortalSectionKey } from "@/lib/adminRoles";
 const ADMIN_PROFILE_CACHE_KEY = "adminProfileCache";
 
-export type AdminOrgRoleKey = "FOUNDER" | "COFOUNDER" | "CTO" | "CPO" | "INSTRUCTOR";
+export type AdminOrgRoleKey = string;
 
 export interface AdminProfile {
   userId: string;
@@ -30,11 +30,13 @@ export interface AdminProfile {
   isSuperAdmin: boolean;
   roles: AdminOrgRoleKey[];
   portalSections?: PortalSectionKey[];
+  effectivePortalSections?: PortalSectionKey[];
   userLimit: number | null;
 }
 
 interface AdminSessionPayload extends AdminProfile {
   exp: number;
+  effectivePortalSections?: PortalSectionKey[];
 }
 
 function decodeBase64Url(value: string): string {
@@ -87,6 +89,7 @@ export function profileFromAdminToken(token?: string | null): AdminProfile | nul
     isSuperAdmin: payload.isSuperAdmin,
     roles: payload.roles ?? [],
     portalSections: payload.portalSections ?? [],
+    effectivePortalSections: payload.effectivePortalSections ?? [],
     userLimit: payload.userLimit,
   };
 }
@@ -372,6 +375,65 @@ export async function removeAuthorizedAdmin(email: string): Promise<void> {
   if (!response.ok) {
     throw new Error(data.message || "Failed to revoke admin access");
   }
+}
+
+export async function listAdminOrgRoles(includeInactive = false): Promise<{
+  roles: AdminOrgRoleDefinition[];
+  portalSections: PortalSectionKey[];
+}> {
+  const query = includeInactive ? "?includeInactive=true" : "";
+  const response = await fetch(`${API_URL}/auth/admin/org-roles${query}`, {
+    headers: getAdminAuthHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to load org roles");
+  }
+  return {
+    roles: (data.data?.roles ?? []) as AdminOrgRoleDefinition[],
+    portalSections: (data.data?.portalSections ?? []) as PortalSectionKey[],
+  };
+}
+
+export async function createAdminOrgRole(payload: {
+  label: string;
+  key?: string;
+  portalSections: PortalSectionKey[];
+}): Promise<AdminOrgRoleDefinition> {
+  const response = await fetch(`${API_URL}/auth/admin/org-roles`, {
+    method: "POST",
+    headers: getAdminAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create role");
+  }
+  return data.data as AdminOrgRoleDefinition;
+}
+
+export async function updateAdminOrgRole(
+  key: string,
+  payload: {
+    label?: string;
+    portalSections?: PortalSectionKey[];
+    isActive?: boolean;
+    sortOrder?: number;
+  }
+): Promise<AdminOrgRoleDefinition> {
+  const response = await fetch(
+    `${API_URL}/auth/admin/org-roles/${encodeURIComponent(key)}`,
+    {
+      method: "PATCH",
+      headers: getAdminAuthHeaders(),
+      body: JSON.stringify(payload),
+    }
+  );
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update role");
+  }
+  return data.data as AdminOrgRoleDefinition;
 }
 
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {

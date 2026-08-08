@@ -15,18 +15,19 @@ import {
   updateAdminPortalSettingsRecord,
 } from "../utils/ensureAdminPortalSettings.js";
 import {
-  ASSIGNABLE_ADMIN_ORG_ROLES,
   SUPER_ADMIN_ORG_ROLES,
   adminHasPortalSection,
+  getEffectivePortalSections,
   normalizeAdminOrgRoles,
   normalizePortalSections,
 } from "../constants/adminPortalRoles.js";
+import { ensureAdminOrgRoleCache } from "../services/adminOrgRoleStore.js";
 
 const SUPER_ADMIN_EMAIL =
   process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase() || "sujithputta02@gmail.com";
 
 function buildAdminContext(authorized, payload) {
-  return {
+  const base = {
     userId: payload.userId,
     email: payload.email,
     role: payload.role,
@@ -35,6 +36,10 @@ function buildAdminContext(authorized, payload) {
     roles: authorized.roles ?? [],
     portalSections: normalizePortalSections(authorized.portalSections),
     userLimit: authorized.isSuperAdmin ? null : authorized.userLimit,
+  };
+  return {
+    ...base,
+    effectivePortalSections: getEffectivePortalSections(base),
   };
 }
 
@@ -94,7 +99,14 @@ async function assertAdminSlotAvailable({ excludeEmail = null } = {}) {
   return { ok: true, settings, activeCount: effectiveCount };
 }
 
-function validateAdminPayload({ roles, userLimit, isSuperAdmin = false, portalSections = [] }) {
+async function validateAdminPayload({
+  roles,
+  userLimit,
+  isSuperAdmin = false,
+  portalSections = [],
+}) {
+  await ensureAdminOrgRoleCache();
+
   if (isSuperAdmin) {
     return {
       isSuperAdmin: true,
@@ -104,9 +116,7 @@ function validateAdminPayload({ roles, userLimit, isSuperAdmin = false, portalSe
     };
   }
 
-  const normalizedRoles = normalizeAdminOrgRoles(roles).filter((role) =>
-    ASSIGNABLE_ADMIN_ORG_ROLES.includes(role)
-  );
+  const normalizedRoles = normalizeAdminOrgRoles(roles);
 
   if (normalizedRoles.length === 0) {
     return {
@@ -172,6 +182,8 @@ export const requireAdminSession = async (req, res, next) => {
     if (!payload) {
       return res.status(401).json({ success: false, message: "Invalid or expired admin session" });
     }
+
+    await ensureAdminOrgRoleCache();
 
     const authorized = await prisma.authorizedAdmin.findUnique({
       where: { email: payload.email.toLowerCase() },
@@ -373,7 +385,7 @@ export const addAuthorizedAdmin = async (req, res) => {
       });
     }
 
-    const validated = validateAdminPayload({
+    const validated = await validateAdminPayload({
       roles,
       userLimit,
       isSuperAdmin: grantSuperAdmin,
@@ -498,7 +510,7 @@ export const updateAuthorizedAdmin = async (req, res) => {
       return res.status(403).json({ success: false, message: superAdminChangeError });
     }
 
-    const validated = validateAdminPayload({
+    const validated = await validateAdminPayload({
       roles,
       userLimit,
       isSuperAdmin: grantSuperAdmin,
@@ -643,6 +655,8 @@ async function sendAdminWelcomeEmail({ email, name, addedByEmail, isReactivate =
 export async function ensureSuperAdminSeeded() {
   try {
     await ensureAuthorizedAdminSchema();
+    const { seedDefaultAdminOrgRoles } = await import("../services/adminOrgRoleStore.js");
+    await seedDefaultAdminOrgRoles();
     await getAdminPortalSettingsRecord();
     await ensureSuperAdminRecord();
   } catch (error) {
