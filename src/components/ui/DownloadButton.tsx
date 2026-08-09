@@ -23,6 +23,8 @@ export interface DownloadButtonProps {
   fileSize?: string;
   /** Icon + optional screen-reader label only (e.g. compact navbar). */
   iconOnly?: boolean;
+  className?: string;
+  fullWidth?: boolean;
 }
 
 const sizeClasses = {
@@ -78,6 +80,8 @@ export function DownloadButton({
   trackingLabel,
   fileSize,
   iconOnly = false,
+  className = "",
+  fullWidth = false,
 }: DownloadButtonProps) {
   const [busy, setBusy] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,9 +100,10 @@ export function DownloadButton({
   }, [busy, filename]);
 
   const base =
-    "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
+    "inline-flex items-center justify-center whitespace-nowrap rounded-full font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
 
   const sizeClass = iconOnly ? iconOnlySizeClasses[size] : sizeClasses[size];
+  const widthClass = iconOnly ? "shrink-0" : fullWidth ? "w-full sm:w-auto" : "shrink-0";
   const iconClass =
     iconOnly
       ? size === "sm"
@@ -120,7 +125,7 @@ export function DownloadButton({
       aria-label={accessibleName}
       aria-busy={busy}
       data-tracking-label={trackingLabel ?? undefined}
-      className={`${base} ${sizeClass} ${variantClasses[variant]}`}
+      className={`${base} ${sizeClass} ${widthClass} ${variantClasses[variant]} ${className}`.trim()}
       onClick={handleClick}
     >
       <span className="inline-flex shrink-0 items-center justify-center" aria-hidden>

@@ -14,6 +14,8 @@ export interface Founder {
   role: string;
   title: string;
   photo: string;
+  /** CSS object-position for circular crops when default center crops the face oddly */
+  photoPosition?: string;
   bio: string[];
   degrees: Degree[];
   expertise: string[];
@@ -136,6 +138,8 @@ export const founders: Founder[] = [
     role: "Chief Product Officer & Instructor",
     title: "Senior Business Analyst · Data Science & Business Systems",
     photo: "/images/founders/Sandhya_profile.png",
+    // Shift crop down so forehead / hair stay inside the circle
+    photoPosition: "50% 22%",
     bio: [
       "Sandhya L serves as the Chief Product Officer and Instructor, bringing over five years of experience in business analysis, data science, and enterprise technology. She specializes in bridging the gap between business and technology by translating complex requirements into scalable, data-driven solutions.",
       "With expertise in Agile methodologies, SQL, Power BI, business systems analysis, and stakeholder collaboration, she combines analytical thinking with practical implementation to help organizations improve operational efficiency and deliver successful digital transformation initiatives.",
