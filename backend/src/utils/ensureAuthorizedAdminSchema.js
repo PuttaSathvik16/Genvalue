@@ -34,6 +34,18 @@ export async function ensureAuthorizedAdminSchema() {
   `);
 
   await prisma.$executeRawUnsafe(`
+    ALTER TABLE authorized_admins ADD COLUMN IF NOT EXISTS timezone STRING;
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE authorized_admins ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP;
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE authorized_admins ADD COLUMN IF NOT EXISTS "lastLogoutAt" TIMESTAMP;
+  `);
+
+  await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS admin_org_roles (
       id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
       key STRING NOT NULL UNIQUE,

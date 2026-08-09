@@ -347,6 +347,9 @@ export const listAuthorizedAdmins = async (req, res) => {
         userLimit: true,
         addedByEmail: true,
         createdAt: true,
+        timezone: true,
+        lastLoginAt: true,
+        lastLogoutAt: true,
       },
     });
 
@@ -601,6 +604,29 @@ export const getAdminProfile = async (req, res) => {
     success: true,
     data: req.admin,
   });
+};
+
+/**
+ * POST /api/auth/admin/logout
+ * Records last logout timestamp for the signed-in authorized admin.
+ */
+export const recordAdminLogout = async (req, res) => {
+  try {
+    const email = req.admin?.email?.trim().toLowerCase();
+    if (!email) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    await prisma.authorizedAdmin.updateMany({
+      where: { email, isActive: true },
+      data: { lastLogoutAt: new Date() },
+    });
+
+    res.status(200).json({ success: true, message: "Logout recorded" });
+  } catch (error) {
+    console.error("recordAdminLogout error:", error);
+    res.status(500).json({ success: false, message: "Failed to record logout" });
+  }
 };
 
 const PRODUCTION_FRONTEND_URL = "https://genvalue-ten.vercel.app";

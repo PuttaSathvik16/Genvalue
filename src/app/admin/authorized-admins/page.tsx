@@ -42,6 +42,37 @@ import {
 import { useAdminPortalPath } from "@/hooks/useAdminPortalPath";
 import { ListItemsSkeleton } from "@/components/skeletons";
 
+function formatAdminSessionTime(
+  value: string | null | undefined,
+  timeZone?: string | null
+): string {
+  if (!value) return "Never";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Never";
+
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  };
+
+  try {
+    if (timeZone) {
+      return date.toLocaleString(undefined, { ...options, timeZone });
+    }
+  } catch {
+    // Fall through to viewer locale if stored zone is invalid.
+  }
+
+  return date.toLocaleString(undefined, options);
+}
+
 export default function AuthorizedAdminsPage() {
   const router = useRouter();
   const { sessionId } = useAdminPortalPath();
@@ -1064,6 +1095,16 @@ export default function AuthorizedAdminsPage() {
                   <p className="mt-1 text-xs text-[#6B6558] dark:text-slate-400">
                     {admin.name || "No name"} · Added by {admin.addedByEmail || "system"}
                   </p>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-[#6B6558] dark:text-slate-400">
+                    <p>
+                      <span className="font-bold text-[#2A2A28] dark:text-slate-200">Last login:</span>{" "}
+                      {formatAdminSessionTime(admin.lastLoginAt, admin.timezone)}
+                    </p>
+                    <p>
+                      <span className="font-bold text-[#2A2A28] dark:text-slate-200">Last logout:</span>{" "}
+                      {formatAdminSessionTime(admin.lastLogoutAt, admin.timezone)}
+                    </p>
+                  </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {(admin.roles ?? []).map((role) => (
                       <span

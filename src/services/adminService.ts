@@ -133,6 +133,9 @@ export interface AuthorizedAdmin {
   userLimit: number | null;
   addedByEmail: string | null;
   createdAt: string;
+  timezone?: string | null;
+  lastLoginAt?: string | null;
+  lastLogoutAt?: string | null;
 }
 
 export interface AdminAuditLog {
@@ -374,6 +377,20 @@ export async function removeAuthorizedAdmin(email: string): Promise<void> {
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.message || "Failed to revoke admin access");
+  }
+}
+
+/** Best-effort: record logout time before clearing the local admin session. */
+export async function recordAdminLogout(): Promise<void> {
+  if (!isValidAdminToken()) return;
+  try {
+    await fetch(`${API_URL}/auth/admin/logout`, {
+      method: "POST",
+      headers: getAdminAuthHeaders(),
+      keepalive: true,
+    });
+  } catch {
+    // Session clear should still proceed even if logging fails.
   }
 }
 

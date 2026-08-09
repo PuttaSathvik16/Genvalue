@@ -180,6 +180,10 @@ model AuthorizedAdmin {
   roles          String[] @default([])
   portalSections String[] @default([])
   userLimit      Int?
+  /** IANA timezone from last successful admin login (e.g. America/New_York) */
+  timezone       String?
+  lastLoginAt    DateTime?
+  lastLogoutAt   DateTime?
   addedByEmail String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

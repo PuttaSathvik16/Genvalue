@@ -14,28 +14,53 @@ const CONTACT_EMAIL =
 const SUPER_ADMIN_EMAIL =
   process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase() || "sujithputta02@gmail.com";
 
+const FALLBACK_TIMEZONE = "UTC";
+
 function formatAdminRoleLabel({ isSuperAdmin, roles = [] }) {
   if (isSuperAdmin) return "Super Admin";
   if (roles.length === 0) return "Admin";
   return roles.join(", ");
 }
 
-function formatLoginParts(loginAt) {
-  const date = loginAt.toLocaleDateString("en-IN", {
+/** Validate IANA timezone strings from the browser (e.g. America/New_York). */
+export function normalizeIanaTimeZone(value) {
+  const tz = String(value || "").trim();
+  if (!tz || tz.length > 80) return null;
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: tz }).format(new Date());
+    return tz;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Format login instant in the actor's regional timezone for EVERY recipient.
+ * Everyone sees the same wall-clock time + standard zone label (EST/EDT/IST/etc.).
+ */
+export function formatLoginPartsInTimeZone(loginAt, timeZone) {
+  const zone = normalizeIanaTimeZone(timeZone) || FALLBACK_TIMEZONE;
+
+  const date = loginAt.toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: "Asia/Kolkata",
+    timeZone: zone,
   });
-  const time = loginAt.toLocaleTimeString("en-IN", {
+
+  const time = loginAt.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    hour12: true,
+    timeZone: zone,
     timeZoneName: "short",
-    timeZone: "Asia/Kolkata",
   });
-  return { date, time };
+
+  const regionLabel = zone.replace(/_/g, " ");
+
+  return { date, time, timeZone: zone, regionLabel };
 }
 
 async function resolveAlertRecipients(actorEmail) {
@@ -57,8 +82,7 @@ async function resolveAlertRecipients(actorEmail) {
     });
     for (const row of supers) {
       const email = row.email.trim().toLowerCase();
-      if (!email) continue;
-      if (byEmail.has(email)) continue;
+      if (!email || byEmail.has(email)) continue;
       byEmail.set(email, {
         email,
         kind: email === normalizedActor ? "actor" : "watcher",
@@ -85,6 +109,7 @@ async function deliverAlertEmail(params) {
 /**
  * Send a sign-in security alert to the admin who authenticated
  * and every active super admin (deduped).
+ * Date/Time always use the logging admin's regional timezone.
  */
 export async function sendAdminLoginAlertEmail({
   email,
@@ -94,17 +119,14 @@ export async function sendAdminLoginAlertEmail({
   ipAddress,
   userAgent,
   loginAt = new Date(),
+  timeZone,
 }) {
-  const { date: loginDate, time: loginTime } = formatLoginParts(loginAt);
+  const parts = formatLoginPartsInTimeZone(loginAt, timeZone);
   const displayName = (name && String(name).trim()) || email.split("@")[0];
   const roleLabel = formatAdminRoleLabel({ isSuperAdmin, roles });
   const recipients = await resolveAlertRecipients(email);
 
-  const subject = `[GenValue] Security Alert — Admin login ${loginAt.toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Kolkata",
-  })}`;
+  const subject = `[GenValue] Security Alert — Admin login ${parts.date} · ${parts.time}`;
 
   const results = [];
 
@@ -113,8 +135,9 @@ export async function sendAdminLoginAlertEmail({
       adminName: displayName,
       adminEmail: email.trim().toLowerCase(),
       roleLabel,
-      loginDate,
-      loginTime,
+      loginDate: parts.date,
+      loginTime: parts.time,
+      timeZoneLabel: parts.regionLabel,
       ipAddress: ipAddress || "Unknown",
       userAgent: userAgent?.slice(0, 500) || "Not available",
       recipientKind: recipient.kind,
@@ -133,10 +156,7 @@ export async function sendAdminLoginAlertEmail({
 
     const result = await deliverAlertEmail(params);
     if (!result.ok) {
-      console.warn(
-        `[adminLoginAlert] failed for ${recipient.email}:`,
-        result.message
-      );
+      console.warn(`[adminLoginAlert] failed for ${recipient.email}:`, result.message);
     }
     results.push({ email: recipient.email, ...result });
   }
@@ -150,7 +170,7 @@ export async function sendAdminLoginAlertEmail({
     };
   }
 
-  return { ok: true, results };
+  return { ok: true, results, timeZone: parts.timeZone };
 }
 
 export function getClientIpFromRequest(req) {

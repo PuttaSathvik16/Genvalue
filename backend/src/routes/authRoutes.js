@@ -22,6 +22,7 @@ import {
   updateAuthorizedAdmin,
   removeAuthorizedAdmin,
   getAdminProfile,
+  recordAdminLogout,
   requireAdminSession,
   requireSuperAdmin,
   requireMainSuperAdmin,
@@ -60,6 +61,7 @@ router.post("/forgot-password/reset", passwordResetRateLimit, resetPasswordHandl
 
 // Admin session routes (super admin manages authorized emails)
 router.get("/admin/me", requireAdminSession, getAdminProfile);
+router.post("/admin/logout", requireAdminSession, recordAdminLogout);
 router.get(
   "/admin/portal-settings",
   requireAdminSession,
