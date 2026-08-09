@@ -1,5 +1,6 @@
 import type { AdminModuleDetail } from "@/types/moduleEditor";
 import type { SecurityReport } from "@/types/security";
+import type { SystemHealthReport } from "@/types/systemHealth";
 import { API_URL, wrapBackendFetchError } from "@/lib/api";
 import { clearPortalSessionId } from "@/lib/lmsSession";
 import {
@@ -767,6 +768,24 @@ export async function getAdminSecurityReport(): Promise<SecurityReport> {
     return data.data;
   } catch (err) {
     throw wrapBackendFetchError(err, "Failed to load security report");
+  }
+}
+
+export async function getAdminSystemHealth(): Promise<SystemHealthReport> {
+  try {
+    const response = await fetch(`${API_URL}/admin/system-health`, {
+      headers: getAdminAuthHeaders(),
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to load system health");
+    }
+
+    return data.data;
+  } catch (err) {
+    throw wrapBackendFetchError(err, "Failed to load system health");
   }
 }
 

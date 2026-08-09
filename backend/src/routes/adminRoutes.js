@@ -6,6 +6,7 @@ import {
 } from "../controllers/adminAnalyticsController.js";
 import { removeStudent, deactivateStudent, reactivateStudent } from "../controllers/adminUserController.js";
 import { getPortalSecurityReport } from "../controllers/securityController.js";
+import { getSystemHealth } from "../controllers/systemHealthController.js";
 import {
   listBugReports,
   updateBugReportStatus,
@@ -58,6 +59,12 @@ router.get(
   requireAdminSession,
   requireAdminPortalRole("SECURITY"),
   getPortalSecurityReport
+);
+router.get(
+  "/system-health",
+  requireAdminSession,
+  requireAdminPortalRole("SECURITY"),
+  getSystemHealth
 );
 router.get(
   "/bug-reports",
