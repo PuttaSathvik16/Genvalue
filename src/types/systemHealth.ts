@@ -18,6 +18,40 @@ export interface SystemHealthService {
   informational?: boolean;
 }
 
+export interface SystemHealthMaintenance {
+  enabled: boolean;
+  message: string;
+  updatedAt: string | null;
+  updatedByEmail: string | null;
+}
+
+export interface SystemHealthInfo {
+  appName: string;
+  appVersion: string;
+  nodeVersion: string;
+  platform: string;
+  arch: string;
+  pid: number;
+  processUptimeSec: number;
+  processUptimeLabel: string;
+  processStartedAt: string;
+  memory: {
+    rssMb: number;
+    heapUsedMb: number;
+    heapTotalMb: number;
+    externalMb: number;
+  };
+}
+
+export interface SystemHealthOperations {
+  canToggleMaintenance: boolean;
+  canRecycleDatabasePool: boolean;
+  canRestartApiProcess: boolean;
+  restartNote: string;
+  canClearBrowserCache: boolean;
+  browserCacheNote: string;
+}
+
 export interface SystemHealthReport {
   overall: SystemHealthStatus;
   checkedAt: string;
@@ -41,6 +75,9 @@ export interface SystemHealthReport {
     productionReady: boolean;
     missingInProduction: string[];
   };
+  maintenance: SystemHealthMaintenance;
+  systemInfo: SystemHealthInfo;
+  operations: SystemHealthOperations;
   outOfScope: Array<{
     id: string;
     label: string;

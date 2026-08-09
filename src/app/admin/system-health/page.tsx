@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
+  FaBroom,
   FaCircleCheck,
   FaCircleExclamation,
   FaCircleXmark,
@@ -15,13 +16,20 @@ import {
   FaRotateRight,
   FaServer,
   FaShieldHalved,
+  FaScrewdriverWrench,
+  FaTriangleExclamation,
   FaUserShield,
   FaVideo,
   FaWaveSquare,
 } from "react-icons/fa6";
 import { SecurityPageSkeleton } from "@/components/skeletons";
 import { useAdminPortalPath } from "@/hooks/useAdminPortalPath";
-import { getAdminSystemHealth } from "@/services/adminService";
+import {
+  clearAdminBrowserCaches,
+  getAdminSystemHealth,
+  recycleAdminDatabasePool,
+  updateAdminSystemMaintenance,
+} from "@/services/adminService";
 import type {
   ServiceHealthStatus,
   SystemHealthGroup,
@@ -140,6 +148,9 @@ export default function AdminSystemHealthPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [denied, setDenied] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState("");
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [actionNote, setActionNote] = useState("");
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -149,6 +160,7 @@ export default function AdminSystemHealthPage() {
     try {
       const data = await getAdminSystemHealth();
       setReport(data);
+      setMaintenanceMessage(data.maintenance.message || "");
       setDenied(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load system health";
@@ -166,6 +178,63 @@ export default function AdminSystemHealthPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleToggleMaintenance = async () => {
+    if (!report) return;
+    const nextEnabled = !report.maintenance.enabled;
+    const confirmMsg = nextEnabled
+      ? "Enable maintenance mode? Students will see a maintenance screen in the LMS."
+      : "Disable maintenance mode and restore LMS access?";
+    if (!window.confirm(confirmMsg)) return;
+
+    setActionBusy("maintenance");
+    setActionNote("");
+    try {
+      await updateAdminSystemMaintenance({
+        enabled: nextEnabled,
+        message: maintenanceMessage.trim() || undefined,
+      });
+      setActionNote(
+        nextEnabled
+          ? "Maintenance mode is ON — LMS students will see the maintenance screen."
+          : "Maintenance mode is OFF — LMS access restored."
+      );
+      await load(true);
+    } catch (err) {
+      setActionNote(err instanceof Error ? err.message : "Failed to update maintenance");
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handleRecycleDb = async () => {
+    if (!window.confirm("Recycle the database connection pool? This is a soft restart, not a full host reboot.")) {
+      return;
+    }
+    setActionBusy("recycle");
+    setActionNote("");
+    try {
+      const result = await recycleAdminDatabasePool();
+      setActionNote(`${result.detail} (${result.latencyMs} ms)`);
+      await load(true);
+    } catch (err) {
+      setActionNote(err instanceof Error ? err.message : "Failed to recycle database pool");
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handleClearBrowserCache = () => {
+    const { cleared } = clearAdminBrowserCaches();
+    setActionNote(
+      cleared.length
+        ? `Cleared browser caches: ${cleared.join(", ")}. Reloading…`
+        : "No admin cache keys found. Reloading…"
+    );
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 600);
+  };
 
   const overall = report ? OVERALL[report.overall] : null;
 
@@ -285,6 +354,11 @@ export default function AdminSystemHealthPage() {
                     {overall.title}
                   </h2>
                   <p className="mt-2 max-w-md text-sm text-white/65">{overall.subtitle}</p>
+                  {report.maintenance.enabled ? (
+                    <p className="mt-2 inline-flex rounded-full bg-[#F59E0B]/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#FCD34D]">
+                      LMS maintenance mode active
+                    </p>
+                  ) : null}
                   <p className="mt-3 text-[11px] font-medium text-white/40">
                     Last checked {formatCheckedAt(report.checkedAt)} · {report.environment.hosting} ·{" "}
                     {report.environment.nodeEnv}
@@ -345,6 +419,160 @@ export default function AdminSystemHealthPage() {
               Icon={FaShieldHalved}
               href={toPortal("/admin/security")}
             />
+          </section>
+
+          {actionNote ? (
+            <div
+              className="rounded-2xl border border-[#1E3FE0]/20 bg-[#1E3FE0]/8 p-4 text-sm font-semibold text-[#1E3FE0] dark:border-[#60A5FA]/25 dark:bg-[#60A5FA]/10 dark:text-[#60A5FA]"
+              role="status"
+            >
+              {actionNote}
+            </div>
+          ) : null}
+
+          {/* Operations */}
+          <section
+            className="rounded-3xl border border-black/10 bg-[#F6F1E4] p-5 shadow-xl dark:border-white/10 dark:bg-[#0D1B2A] sm:p-6"
+            aria-labelledby="ops-controls-heading"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <FaScrewdriverWrench className="h-4 w-4 text-[#E8622E]" aria-hidden />
+              <h3
+                id="ops-controls-heading"
+                className="font-display-custom text-sm font-extrabold uppercase tracking-wider text-[#2A2A28] dark:text-white"
+              >
+                Operations
+              </h3>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-2xl border border-black/8 bg-white/55 p-4 dark:border-white/10 dark:bg-white/5 lg:col-span-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-[#2A2A28] dark:text-white">Maintenance</p>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                      report.maintenance.enabled
+                        ? "bg-[#F59E0B]/15 text-[#B45309] dark:text-[#FCD34D]"
+                        : "bg-[#10B981]/10 text-[#10B981]"
+                    }`}
+                  >
+                    {report.maintenance.enabled ? "Enabled" : "Off"}
+                  </span>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-[#6B6558] dark:text-slate-400">
+                  Blocks LMS student access with a maintenance screen. Admin portal stays available.
+                </p>
+                <label htmlFor="maintenance-message" className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-[#6B6558]">
+                  Student message
+                </label>
+                <textarea
+                  id="maintenance-message"
+                  rows={3}
+                  value={maintenanceMessage}
+                  onChange={(e) => setMaintenanceMessage(e.target.value)}
+                  className="mt-1.5 w-full rounded-2xl border border-black/10 bg-white/80 px-3 py-2 text-sm text-[#2A2A28] outline-none focus:border-[#1E3FE0] dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-[#60A5FA]"
+                  aria-label="Maintenance message shown to students"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleToggleMaintenance()}
+                  disabled={actionBusy === "maintenance"}
+                  aria-label={report.maintenance.enabled ? "Disable maintenance mode" : "Enable maintenance mode"}
+                  className={`mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full px-4 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50 ${
+                    report.maintenance.enabled
+                      ? "bg-[#10B981] hover:bg-[#0d9668]"
+                      : "bg-[#E8622E] hover:bg-[#d55321]"
+                  }`}
+                >
+                  <FaTriangleExclamation className="h-3.5 w-3.5" aria-hidden />
+                  {actionBusy === "maintenance"
+                    ? "Updating…"
+                    : report.maintenance.enabled
+                      ? "Disable maintenance"
+                      : "Enable maintenance"}
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-black/8 bg-white/55 p-4 dark:border-white/10 dark:bg-white/5">
+                <p className="text-sm font-bold text-[#2A2A28] dark:text-white">Restart services</p>
+                <p className="mt-2 text-[11px] leading-relaxed text-[#6B6558] dark:text-slate-400">
+                  {report.operations.restartNote}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void handleRecycleDb()}
+                  disabled={actionBusy === "recycle"}
+                  aria-label="Recycle database connection pool"
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#1E3FE0] px-4 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#1530b5] disabled:opacity-50 dark:bg-[#60A5FA] dark:text-[#070B19]"
+                >
+                  <FaDatabase className="h-3.5 w-3.5" aria-hidden />
+                  {actionBusy === "recycle" ? "Recycling…" : "Recycle DB pool"}
+                </button>
+                <p className="mt-3 text-[10px] font-medium text-[#6B6558] dark:text-slate-500">
+                  API process restart: use Render dashboard (not available in-app).
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-black/8 bg-white/55 p-4 dark:border-white/10 dark:bg-white/5">
+                <p className="text-sm font-bold text-[#2A2A28] dark:text-white">Reset browser cache</p>
+                <p className="mt-2 text-[11px] leading-relaxed text-[#6B6558] dark:text-slate-400">
+                  {report.operations.browserCacheNote}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleClearBrowserCache}
+                  aria-label="Clear admin browser caches and reload"
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 text-xs font-bold uppercase tracking-wider text-[#2A2A28] hover:bg-black/5 dark:border-white/10 dark:bg-white/10 dark:text-white"
+                >
+                  <FaBroom className="h-3.5 w-3.5" aria-hidden />
+                  Clear & reload
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* System information */}
+          <section
+            className="rounded-3xl border border-black/10 bg-[#F6F1E4] p-5 shadow-xl dark:border-white/10 dark:bg-[#0D1B2A] sm:p-6"
+            aria-labelledby="system-info-heading"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <FaServer className="h-4 w-4 text-[#1E3FE0] dark:text-[#60A5FA]" aria-hidden />
+              <h3
+                id="system-info-heading"
+                className="font-display-custom text-sm font-extrabold uppercase tracking-wider text-[#2A2A28] dark:text-white"
+              >
+                System information
+              </h3>
+            </div>
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "Application", value: `${report.systemInfo.appName} v${report.systemInfo.appVersion}` },
+                { label: "Runtime", value: report.systemInfo.nodeVersion },
+                { label: "Host / env", value: `${report.environment.hosting} · ${report.environment.nodeEnv}` },
+                { label: "Platform", value: `${report.systemInfo.platform}/${report.systemInfo.arch}` },
+                { label: "Process uptime", value: report.systemInfo.processUptimeLabel },
+                { label: "PID", value: String(report.systemInfo.pid) },
+                {
+                  label: "Memory (RSS / heap)",
+                  value: `${report.systemInfo.memory.rssMb} MB / ${report.systemInfo.memory.heapUsedMb} MB`,
+                },
+                {
+                  label: "Maintenance",
+                  value: report.maintenance.enabled ? "Enabled for LMS" : "Disabled",
+                },
+              ].map((row) => (
+                <div
+                  key={row.label}
+                  className="rounded-2xl border border-black/8 bg-white/55 px-4 py-3 dark:border-white/10 dark:bg-white/5"
+                >
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-[#6B6558] dark:text-slate-400">
+                    {row.label}
+                  </dt>
+                  <dd className="mt-1 text-sm font-bold text-[#2A2A28] dark:text-white">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
 
           {/* Service groups */}

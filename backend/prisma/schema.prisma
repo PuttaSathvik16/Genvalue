@@ -212,6 +212,8 @@ model AuthorizedAdmin {
 model AdminPortalSettings {
   id                  String   @id @default("default")
   maxAuthorizedAdmins Int      @default(5)
+  maintenanceMode     Boolean  @default(false)
+  maintenanceMessage  String?
   updatedAt           DateTime @updatedAt
   updatedByEmail      String?
 

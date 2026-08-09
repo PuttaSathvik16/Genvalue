@@ -6,7 +6,11 @@ import {
 } from "../controllers/adminAnalyticsController.js";
 import { removeStudent, deactivateStudent, reactivateStudent } from "../controllers/adminUserController.js";
 import { getPortalSecurityReport } from "../controllers/securityController.js";
-import { getSystemHealth } from "../controllers/systemHealthController.js";
+import {
+  getSystemHealth,
+  updateSystemMaintenance,
+  recycleDatabasePool,
+} from "../controllers/systemHealthController.js";
 import {
   listBugReports,
   updateBugReportStatus,
@@ -65,6 +69,18 @@ router.get(
   requireAdminSession,
   requireAdminPortalRole("SECURITY"),
   getSystemHealth
+);
+router.patch(
+  "/system-health/maintenance",
+  requireAdminSession,
+  requireAdminPortalRole("SECURITY"),
+  updateSystemMaintenance
+);
+router.post(
+  "/system-health/recycle-db",
+  requireAdminSession,
+  requireAdminPortalRole("SECURITY"),
+  recycleDatabasePool
 );
 router.get(
   "/bug-reports",
